@@ -1,0 +1,8 @@
+{
+  "short_name": "KeralaLive",
+  "name": "KeralaLive Trip Planner",
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#22c55e",
+  "background_color": "#ffffff"
+}
