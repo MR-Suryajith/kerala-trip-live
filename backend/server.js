@@ -9,7 +9,6 @@ app.use(express.json());
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// Helper function for "Retry with Exponential Backoff"
 const generateWithRetry = async (model, prompt, retries = 3, delay = 2000) => {
   for (let i = 0; i < retries; i++) {
     try {
@@ -20,11 +19,7 @@ const generateWithRetry = async (model, prompt, retries = 3, delay = 2000) => {
         error.message.includes("503") ||
         error.message.includes("overloaded")
       ) {
-        console.log(
-          `⚠️ Model busy, retrying in ${delay}ms... (Attempt ${
-            i + 1
-          }/${retries})`
-        );
+        console.log(`⚠️ AI Busy, retrying... (${i + 1}/${retries})`);
         await new Promise((res) => setTimeout(res, delay));
         delay *= 2;
       } else {
@@ -32,7 +27,7 @@ const generateWithRetry = async (model, prompt, retries = 3, delay = 2000) => {
       }
     }
   }
-  throw new Error("Google's AI servers are still overloaded after 3 attempts.");
+  throw new Error("AI servers are overloaded. Try again in a moment.");
 };
 
 app.post("/api/generate-itinerary", async (req, res) => {
@@ -40,52 +35,65 @@ app.post("/api/generate-itinerary", async (req, res) => {
     const { formData } = req.body;
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-    console.log(`✈️ Planning: ${formData.origin} ➔ ${formData.destination}`);
+    console.log(
+      `✈️ Planning Trip: ${formData.origin} ➔ ${formData.destination} (${formData.startDate} to ${formData.endDate})`
+    );
 
-    const prompt = `Act as a Kerala Travel Expert and Logistics Coordinator. 
-    Generate a ${formData.days}-day trip itinerary from ${formData.origin} to ${
-      formData.destination
-    }.
-    Travelers: ${formData.travelers}. Total Budget Cap: ₹${formData.budget}. 
-    Interests: ${formData.interests.join(", ")}.
+    // Phase 3: Enhanced Prompt with Seasonal Intelligence & Dynamic Switching
+    const prompt = `Act as a Kerala Travel Expert, Historian, and Logistics Coordinator.
+    
+    USER REQUEST:
+    - Route: From ${formData.origin} to ${formData.destination}
+    - Dates: ${formData.startDate} to ${formData.endDate} (${
+      formData.days
+    } days)
+    - Travelers: ${formData.travelers} | Budget: ₹${formData.budget}
+    - Interests: ${formData.interests.join(", ")}
+    ${
+      formData.specialInstruction
+        ? `- DYNAMIC CHANGE: ${formData.specialInstruction}`
+        : ""
+    }
 
     STRICT INSTRUCTIONS:
-    1. INITIAL LOGISTICS: Identify the best transit (Flight/Train) from ${
-      formData.origin
-    } to a Kerala Gateway (Airport/Station).
-    2. ARRIVAL LOGISTICS: Provide the transfer details from that Gateway to the very first sightseeing spot.
-    3. INDIVIDUAL LOGISTICS: For EVERY sightseeing place, calculate the exact road distance and time from the place immediately preceding it.
-    4. PLAN B & TRAFFIC: Provide a 'Plan B' alternative and a 'Traffic Status' for every single location.
-    5. BUDGET: Ensure all suggested activities and stay fit within the total cap of ₹${
-      formData.budget
-    }.
+    1. SEASONAL INTELLIGENCE: Analyze the dates (${formData.startDate}). 
+       - If Monsoon (June-Aug): Suggest waterfalls (Athirappilly, Meenmutty) and Ayurveda. Warn against trekking.
+       - If Summer (March-May): Suggest hill stations (Munnar, Vagamon) and AC houseboats.
+       - FESTIVALS: Check for Onam, Vishu, Thrissur Pooram, Makaravilakku, or Boat Races occurring on these dates and prioritize them.
+    2. PLAN B SWITCHING: If a "DYNAMIC CHANGE" instruction is provided above, regenerate the itinerary by swapping the requested location while keeping the travel route optimized.
+    3. LOGISTICS: Provide distances/times for every stop.
+    4. BUDGET: Strictly ₹${formData.budget} total for ${
+      formData.travelers
+    } people.
 
-    Return ONLY a JSON object. 
-    CRITICAL: The "estimatedTotalCost" MUST be a simple STRING, not an object.
-
-    Format:
+    Return ONLY a JSON object:
     {
       "initialLogistics": { "from": "${
         formData.origin
-      }", "to": "...", "mode": "...", "distance": "...", "duration": "..." },
-      "arrivalLogistics": { "from": "...", "to": "...", "distance": "...", "duration": "..." },
+      }", "to": "Gateway", "mode": "Flight/Train", "distance": "km", "duration": "hrs" },
+      "arrivalLogistics": { "from": "Gateway", "to": "First Spot", "distance": "km", "duration": "mins" },
+      "seasonalNote": "A brief explanation of why this plan is perfect for ${
+        formData.startDate
+      } (e.g., specific festival info or weather advice)",
       "days": [{
         "dayNumber": 1,
-        "cityLocation": "...",
-        "weather": { "temp": "...", "condition": "...", "icon": "...", "advice": "..." },
+        "date": "Readable Date",
+        "cityLocation": "City Name",
+        "weather": { "temp": "24°C", "condition": "Cloudy", "icon": "⛅", "advice": "Travel advice" },
         "dailyDose": { "recipe": "...", "movie": "...", "game": "..." },
         "places": [{ 
           "name": "...", 
-          "rank": 9,
-          "time": "...",
-          "trafficStatus": "Low/Moderate/High",
-          "distanceFromPrevious": "e.g., 8 km",
-          "travelTimeFromPrevious": "e.g., 20 mins",
+          "rank": 9.5,
+          "time": "10:00 AM",
+          "trafficStatus": "Low/High",
+          "distanceFromPrevious": "km",
+          "travelTimeFromPrevious": "mins",
           "description": "...",
-          "alternativePlace": "Detailed Plan B suggestion"
+          "alternativePlace": "Name of a nearby alternative spot",
+          "altReason": "Short reason why this is the alternative (e.g. 'Rain-friendly' or 'Less crowded')"
         }]
       }],
-      "estimatedTotalCost": "e.g., ₹${formData.budget} total for ${
+      "estimatedTotalCost": "₹${formData.budget} total for ${
       formData.travelers
     } people"
     }`;
@@ -93,13 +101,12 @@ app.post("/api/generate-itinerary", async (req, res) => {
     const text = await generateWithRetry(model, prompt);
     const startJson = text.indexOf("{");
     const endJson = text.lastIndexOf("}") + 1;
-    const jsonString = text.substring(startJson, endJson);
+    const itinerary = JSON.parse(text.substring(startJson, endJson));
 
-    const itinerary = JSON.parse(jsonString);
-    console.log("✅ Success!");
+    console.log("✅ Phase 3 Itinerary Ready!");
     res.json(itinerary);
   } catch (error) {
-    console.error("❌ Backend Error:", error.message);
+    console.error("❌ Error:", error.message);
     res
       .status(500)
       .json({ error: "Generation failed", message: error.message });
@@ -108,5 +115,5 @@ app.post("/api/generate-itinerary", async (req, res) => {
 
 const PORT = 5000;
 app.listen(PORT, () =>
-  console.log(`🚀 Server running on http://localhost:${PORT}`)
+  console.log(`🚀 Phase 3 Server running on http://localhost:${PORT}`)
 );

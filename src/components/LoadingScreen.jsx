@@ -17,7 +17,7 @@ export default function LoadingScreen() {
       {/* Loading Text */}
       <div className="mt-8 text-center">
         <h2 className="text-2xl font-black text-white tracking-widest uppercase animate-pulse">
-          Consulting Gemini AI
+          Consulting AI
         </h2>
         <p className="text-white/70 font-medium mt-2 italic">
           Crafting your perfect Kerala adventure...

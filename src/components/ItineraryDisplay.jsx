@@ -1,14 +1,13 @@
 import React from 'react';
 import MapComponent from './MapComponent';
 
-export default function ItineraryDisplay({ itinerary, onEdit }) {
+export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
   // Safety check: Ensure itinerary and logistics exist
   if (!itinerary || !itinerary.days || !itinerary.initialLogistics) return null;
 
-  // Helper function to safely render the budget if it comes as an object
+  // Helper function to safely render the budget
   const renderBudget = (budget) => {
     if (typeof budget === 'object' && budget !== null) {
-      // If it's an object, try to find a value/total property or stringify it
       return `₹${budget.value || budget.total || budget.amount || 'Calculated'}`;
     }
     return budget;
@@ -17,45 +16,55 @@ export default function ItineraryDisplay({ itinerary, onEdit }) {
   return (
     <div className="max-w-6xl mx-auto p-4 animate-fade-in pb-20 text-white">
       
+      {/* 🌤️ SEASONAL INTELLIGENCE CARD (Phase 3 New) */}
+      {itinerary.seasonalNote && (
+        <div className="bg-yellow-400/20 backdrop-blur-md border border-yellow-400/30 p-6 rounded-[2rem] mb-12 flex items-center gap-6 shadow-2xl animate-pulse">
+            <div className="bg-yellow-400 text-black p-3 rounded-2xl text-2xl shadow-lg">💡</div>
+            <div>
+                <p className="text-yellow-400 text-[10px] font-black uppercase tracking-widest mb-1">Seasonal Insight</p>
+                <p className="text-yellow-50 font-medium italic leading-relaxed">"{itinerary.seasonalNote}"</p>
+            </div>
+        </div>
+      )}
+
       {/* ✈️ TRAVEL HUB: THE JOURNEY TO KERALA */}
       <div className="bg-white/10 backdrop-blur-2xl rounded-[2.5rem] p-8 mb-12 border border-white/20 shadow-2xl">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
           <div className="flex items-center gap-4">
-            <div className="bg-indigo-500 p-4 rounded-3xl text-3xl shadow-lg animate-pulse">✈️</div>
+            <div className="bg-indigo-500 p-4 rounded-3xl text-3xl shadow-lg">✈️</div>
             <div>
               <h2 className="text-4xl font-black italic">Travel Hub</h2>
-              <p className="text-blue-300 font-bold uppercase text-[10px] tracking-[0.3em]">From Home to the Heart of Kerala</p>
+              <p className="text-blue-300 font-bold uppercase text-[10px] tracking-[0.3em]">Phase 1 & 2: Transit Logistics</p>
             </div>
           </div>
           <button 
             onClick={onEdit} 
-            className="bg-white/10 hover:bg-white/20 border border-white/30 px-8 py-3 rounded-full font-black transition-all text-sm"
+            className="bg-white/10 hover:bg-white/20 border border-white/30 px-8 py-3 rounded-full font-black transition-all text-sm uppercase tracking-widest"
           >
-            🔄 CHANGE TRIP
+            🔄 NEW SEARCH
           </button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
           <div className="space-y-6">
             <div className="bg-white/5 p-6 rounded-3xl border border-white/10 relative overflow-hidden group">
-               <span className="absolute -top-2 -right-2 text-[60px] opacity-5 font-black text-white group-hover:opacity-10 transition-opacity">01</span>
-               <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-1">Phase 1: Transit</p>
+               <span className="absolute -top-2 -right-2 text-[60px] opacity-5 font-black text-white">01</span>
+               <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-1">Main Transit</p>
                <h4 className="text-2xl font-black">{itinerary.initialLogistics.from} ➔ {itinerary.initialLogistics.to}</h4>
                <p className="text-sm text-indigo-300 font-bold mt-1">Mode: {itinerary.initialLogistics.mode}</p>
                <div className="flex gap-4 mt-4">
-                 <div className="bg-green-500/20 px-4 py-2 rounded-2xl text-green-300 text-xs font-black border border-green-500/20">📏 {itinerary.initialLogistics.distance}</div>
-                 <div className="bg-blue-500/20 px-4 py-2 rounded-2xl text-blue-300 text-xs font-black border border-blue-500/20">🕒 {itinerary.initialLogistics.duration}</div>
+                 <div className="bg-green-500/20 px-4 py-2 rounded-2xl text-green-300 text-xs font-black">📏 {itinerary.initialLogistics.distance}</div>
+                 <div className="bg-blue-500/20 px-4 py-2 rounded-2xl text-blue-300 text-xs font-black">🕒 {itinerary.initialLogistics.duration}</div>
                </div>
             </div>
 
             <div className="bg-white/5 p-6 rounded-3xl border border-white/10 relative overflow-hidden group">
-               <span className="absolute -top-2 -right-2 text-[60px] opacity-5 font-black text-white group-hover:opacity-10 transition-opacity">02</span>
-               <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-1">Phase 2: Arrival Transfer</p>
+               <span className="absolute -top-2 -right-2 text-[60px] opacity-5 font-black text-white">02</span>
+               <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-1">Arrival Transfer</p>
                <h4 className="text-2xl font-black">{itinerary.arrivalLogistics.from} ➔ {itinerary.arrivalLogistics.to}</h4>
-               <p className="text-sm text-blue-300 font-bold mt-1">Cab Service</p>
                <div className="flex gap-4 mt-4">
-                 <div className="bg-green-500/20 px-4 py-2 rounded-2xl text-green-300 text-xs font-black border border-green-500/20">📏 {itinerary.arrivalLogistics.distance}</div>
-                 <div className="bg-blue-500/20 px-4 py-2 rounded-2xl text-blue-300 text-xs font-black border border-blue-500/20">🕒 {itinerary.arrivalLogistics.duration}</div>
+                 <div className="bg-green-500/20 px-4 py-2 rounded-2xl text-green-300 text-xs font-black">📏 {itinerary.arrivalLogistics.distance}</div>
+                 <div className="bg-blue-500/20 px-4 py-2 rounded-2xl text-blue-300 text-xs font-black">🕒 {itinerary.arrivalLogistics.duration}</div>
                </div>
             </div>
           </div>
@@ -70,18 +79,21 @@ export default function ItineraryDisplay({ itinerary, onEdit }) {
 
       {/* 🌴 DAILY ITINERARY SECTION */}
       <div className="space-y-16">
-        <div className="text-center">
-            <h3 className="text-2xl font-black text-green-400 uppercase tracking-[0.2em] drop-shadow-lg">Daily Sightseeing</h3>
+        <div className="text-center mb-10">
+            <h3 className="text-2xl font-black text-green-400 uppercase tracking-[0.2em] drop-shadow-lg">Curated Sightseeing</h3>
         </div>
 
-        {itinerary.days.map((day) => (
+        {itinerary.days.map((day, dayIndex) => (
           <div key={day.dayNumber} className="bg-white/10 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col lg:flex-row border border-white/20">
             
             <div className="flex-1 border-r border-white/5">
+              {/* Day Header with Real Date */}
               <div className="bg-gradient-to-r from-green-500/60 to-blue-600/60 p-8 text-white backdrop-blur-md">
                 <div className="flex justify-between items-center">
                   <div>
-                    <span className="bg-black/30 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">DAY {day.dayNumber}</span>
+                    <span className="bg-black/30 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
+                        {day.date || `DAY ${day.dayNumber}`}
+                    </span>
                     <h3 className="text-4xl font-black mt-3">{day.cityLocation}</h3>
                   </div>
                   <div className="bg-white/10 backdrop-blur-xl p-4 rounded-3xl flex items-center gap-4 border border-white/20">
@@ -97,7 +109,8 @@ export default function ItineraryDisplay({ itinerary, onEdit }) {
                 </div>
               </div>
 
-              <div className="p-8 space-y-20">
+              {/* Places List */}
+              <div className="p-8 space-y-24">
                 {day.places.map((place, idx) => {
                   const mapOrigin = (idx === 0 && day.dayNumber === 1) 
                     ? itinerary.arrivalLogistics.from 
@@ -108,12 +121,11 @@ export default function ItineraryDisplay({ itinerary, onEdit }) {
                   return (
                     <div key={idx} className="relative pl-10 border-l-2 border-dashed border-white/10 last:border-0 pb-2">
                       
-                      {/* 🚗 INDIVIDUAL ROUTE BADGE (Every Place) */}
+                      {/* Distance Badge */}
                       <div className="absolute -left-[10px] -top-12 z-20">
                         <div className="bg-green-500/40 backdrop-blur-md border border-green-400/50 px-3 py-1 rounded-full text-[10px] font-black text-white shadow-2xl whitespace-nowrap">
-                          🚗 {idx === 0 && day.dayNumber === 1 
-                              ? `${itinerary.arrivalLogistics.distance} (${itinerary.arrivalLogistics.duration})` 
-                              : `${place.distanceFromPrevious || '0 km'} (${place.travelTimeFromPrevious || 'N/A'})`}
+                          🚗 {idx === 0 && day.dayNumber === 1 ? itinerary.arrivalLogistics.distance : (place.distanceFromPrevious || '0 km')}
+                          {place.travelTimeFromPrevious && ` (${place.travelTimeFromPrevious})`}
                         </div>
                       </div>
 
@@ -122,7 +134,7 @@ export default function ItineraryDisplay({ itinerary, onEdit }) {
                       </div>
 
                       <div className="flex justify-between items-start mb-2">
-                        <h4 className="text-2xl font-black">{place.name}</h4>
+                        <h4 className="text-2xl font-black text-white">{place.name}</h4>
                         <span className={`text-[10px] font-black px-4 py-1.5 rounded-full border shadow-sm ${
                           trafficIsHigh ? 'bg-red-500/20 text-red-300 border-red-500/30' : 'bg-green-500/20 text-green-300 border-green-500/30'
                         }`}>
@@ -130,7 +142,7 @@ export default function ItineraryDisplay({ itinerary, onEdit }) {
                         </span>
                       </div>
 
-                      <p className="text-blue-300 font-bold text-xs mb-4">⏰ {place.time}</p>
+                      <p className="text-blue-300 font-bold text-xs mb-4 uppercase tracking-widest">⏰ Recommended: {place.time}</p>
                       <p className="text-white/70 leading-relaxed mb-6 text-sm">{place.description}</p>
 
                       <MapComponent 
@@ -139,16 +151,22 @@ export default function ItineraryDisplay({ itinerary, onEdit }) {
                         isFlight={false} 
                       />
 
-                      {/* ✅ PLAN B SECTION (Alternative Places) */}
+                      {/* ✅ INTERACTIVE PLAN B SECTION (Phase 3 Switcher) */}
                       {place.alternativePlace && (
-                        <div className="mt-8 pt-4 border-t border-white/5">
+                        <div className="mt-8 pt-6 border-t border-white/5 group/alt">
                           <p className="text-[10px] font-black text-yellow-400 uppercase tracking-widest mb-2">
-                            🔄 Plan B (Alternative)
+                            🔄 Plan B Suggestion
                           </p>
-                          <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
-                            <p className="text-blue-200 text-sm font-medium italic leading-relaxed">
-                              {place.alternativePlace}
+                          <div className="bg-white/5 border border-white/10 p-5 rounded-2xl group-hover/alt:bg-white/10 transition-all">
+                            <p className="text-blue-200 text-sm font-medium italic leading-relaxed mb-4">
+                              "{place.altReason || 'A great alternative nearby.'}"
                             </p>
+                            <button 
+                                onClick={() => onSwitchPlan(day.dayNumber, place.name, place.alternativePlace)}
+                                className="w-full bg-green-500/20 hover:bg-green-500 text-green-400 hover:text-white border border-green-500/30 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                            >
+                                Switch Itinerary to {place.alternativePlace}
+                            </button>
                           </div>
                         </div>
                       )}
@@ -179,11 +197,11 @@ export default function ItineraryDisplay({ itinerary, onEdit }) {
         ))}
       </div>
 
-      {/* Bottom Summary - FIXED BUDGET DISPLAY */}
+      {/* Bottom Summary */}
       <div className="mt-16 mb-24 text-center">
-        <div className="inline-block bg-white/10 backdrop-blur-2xl px-12 py-6 rounded-[3rem] border border-white/20 shadow-2xl">
-          <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.3em]">Total Estimated Budget</p>
-          <p className="text-4xl font-black mt-2 tracking-tighter text-white drop-shadow-lg">
+        <div className="inline-block bg-white/10 backdrop-blur-2xl px-10 py-5 rounded-[2.5rem] border border-white/20 shadow-2xl">
+          <p className="text-white/40 text-[9px] font-black uppercase tracking-[0.3em]">Total Estimated Budget</p>
+          <p className="text-xl font-bold mt-1 text-white drop-shadow-md">
             {renderBudget(itinerary.estimatedTotalCost)}
           </p>
         </div>
