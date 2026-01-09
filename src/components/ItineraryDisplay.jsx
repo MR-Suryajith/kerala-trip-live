@@ -34,7 +34,7 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
             <div className="bg-indigo-500 p-4 rounded-3xl text-3xl shadow-lg">✈️</div>
             <div>
               <h2 className="text-4xl font-black italic">Travel Hub</h2>
-              <p className="text-blue-300 font-bold uppercase text-[10px] tracking-[0.3em]">Phase 1 & 2: Transit Logistics</p>
+              <p className="text-blue-300 font-bold uppercase text-[10px] tracking-[0.3em]">Arrival</p>
             </div>
           </div>
           <button 
@@ -48,7 +48,7 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
           <div className="space-y-6">
             <div className="bg-white/5 p-6 rounded-3xl border border-white/10 relative overflow-hidden group">
-               <span className="absolute -top-2 -right-2 text-[60px] opacity-5 font-black text-white">01</span>
+               <span className="absolute -top-2 -right-2 text-[60px] opacity-5 font-black text-white"></span>
                <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-1">Main Transit</p>
                <h4 className="text-2xl font-black">{itinerary.initialLogistics.from} ➔ {itinerary.initialLogistics.to}</h4>
                <p className="text-sm text-indigo-300 font-bold mt-1">Mode: {itinerary.initialLogistics.mode}</p>
@@ -59,7 +59,7 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
             </div>
 
             <div className="bg-white/5 p-6 rounded-3xl border border-white/10 relative overflow-hidden group">
-               <span className="absolute -top-2 -right-2 text-[60px] opacity-5 font-black text-white">02</span>
+               <span className="absolute -top-2 -right-2 text-[60px] opacity-5 font-black text-white"></span>
                <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-1">Arrival Transfer</p>
                <h4 className="text-2xl font-black">{itinerary.arrivalLogistics.from} ➔ {itinerary.arrivalLogistics.to}</h4>
                <div className="flex gap-4 mt-4">
