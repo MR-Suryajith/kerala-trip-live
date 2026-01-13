@@ -5,10 +5,9 @@ require("dotenv").config();
 
 const app = express();
 
-// 1. Render-friendly Middlewares
-app.use(cors());
-app.use(express.json());
+// Render-friendly Middlewares
 app.use(cors({ origin: "*" }));
+app.use(express.json());
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
@@ -39,7 +38,7 @@ const generateWithRetry = async (model, prompt, retries = 3, delay = 2000) => {
   );
 };
 
-// --- CHATBOT ENDPOINT (Optimized for Render/Stability) ---
+// --- CHATBOT ENDPOINT ---
 app.post("/api/chat", async (req, res) => {
   try {
     const { message, history, itineraryContext } = req.body;
@@ -49,32 +48,24 @@ app.post("/api/chat", async (req, res) => {
     if (itineraryContext) {
       conciergePrompt += ` Context: User is viewing a trip to ${
         itineraryContext.destination
-      } for ${
-        itineraryContext.totalDays
-      } days. Spots include: ${itineraryContext.placesMentioned?.join(", ")}.`;
+      }. Current spots: ${itineraryContext.placesMentioned?.join(", ")}.`;
     }
 
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash-lite", // Use 2.5-flash for faster chat
+      model: "gemini-2.5-flash-lite",
       systemInstruction: conciergePrompt,
     });
 
-    // Gemini History Requirements: Must alternate [user, model, user, model]
     let cleanHistory = (history || []).filter(
       (item) => item.parts[0].text.trim() !== ""
     );
-
-    // Ensure history starts with 'user'
-    if (cleanHistory.length > 0 && cleanHistory[0].role === "model") {
+    if (cleanHistory.length > 0 && cleanHistory[0].role === "model")
       cleanHistory.shift();
-    }
-    // Ensure history ends with 'model' (because sendMessage adds the next 'user')
     if (
       cleanHistory.length > 0 &&
       cleanHistory[cleanHistory.length - 1].role === "user"
-    ) {
+    )
       cleanHistory.pop();
-    }
 
     const chat = model.startChat({ history: cleanHistory });
     const result = await chat.sendMessage(message);
@@ -84,35 +75,40 @@ app.post("/api/chat", async (req, res) => {
   } catch (error) {
     console.error("❌ Chat Error:", error.message);
     res.status(200).json({
-      reply: "I'm experiencing high traffic. Please try again in 5 seconds! 🛶",
+      reply: "I'm refreshing my knowledge. Ask me again in 5 seconds! 🛶",
     });
   }
 });
 
-// --- ITINERARY ENDPOINT (Pure JSON Generation) ---
+// --- ITINERARY ENDPOINT (Supports Swapping Spots) ---
 app.post("/api/generate-itinerary", async (req, res) => {
   try {
     const { formData } = req.body;
 
     const model = genAI.getGenerativeModel({
       model: "gemini-2.5-flash-lite",
-      generationConfig: { responseMimeType: "application/json" }, // Forces pure JSON output
+      generationConfig: { responseMimeType: "application/json" },
     });
 
     console.log(`✈️ Planning: ${formData.origin} ➔ ${formData.destination}`);
+    if (formData.specialInstruction)
+      console.log(`🔄 Modification: ${formData.specialInstruction}`);
 
-    const prompt = `Act as a Kerala Travel Expert. Generate a ${
-      formData.days
-    }-day trip itinerary from ${formData.origin} to ${formData.destination}.
+    // 🔥 DYNAMIC PROMPT: Includes the Special Instruction if the user clicked "Swap"
+    const prompt = `Act as a Kerala Travel Expert. 
+    ${
+      formData.specialInstruction
+        ? `⚠️ URGENT CHANGE REQUEST: ${formData.specialInstruction}. YOU MUST DELETE the old place and replace it with the new alternative provided. Recalculate all distances/times for that day to match the new location.`
+        : ""
+    }
+
+    Generate a ${formData.days}-day trip itinerary from ${formData.origin} to ${
+      formData.destination
+    }.
     Travelers: ${formData.travelers}. Budget: ₹${formData.budget}. Dates: ${
       formData.startDate
     }.
     Interests: ${formData.interests.join(", ")}.
-
-    INSTRUCTIONS:
-    - Provide 'initialLogistics' (Flight/Train distance and time).
-    - Provide 'arrivalLogistics' (Gateway to first stop).
-    - For EVERY place, calculate road distance/time from previous stop and a 'Plan B' alternativePlace.
 
     Return ONLY a JSON object:
     {
@@ -120,7 +116,7 @@ app.post("/api/generate-itinerary", async (req, res) => {
         formData.origin
       }", "to": "Gateway", "mode": "...", "distance": "km", "duration": "..." },
       "arrivalLogistics": { "from": "Gateway", "to": "First Spot", "distance": "km", "duration": "..." },
-      "seasonalNote": "Personalized travel advice for ${formData.startDate}",
+      "seasonalNote": "Personalized advice for ${formData.startDate}",
       "days": [{
         "dayNumber": 1,
         "date": "...",
@@ -131,7 +127,7 @@ app.post("/api/generate-itinerary", async (req, res) => {
           "name": "...", 
           "rank": 9.5,
           "time": "...",
-          "trafficStatus": "...",
+          "trafficStatus": "High/Moderate/Low",
           "distanceFromPrevious": "km",
           "travelTimeFromPrevious": "mins",
           "description": "...",
@@ -139,25 +135,19 @@ app.post("/api/generate-itinerary", async (req, res) => {
           "altReason": "..."
         }]
       }],
-      "estimatedTotalCost": "Total for all travelers as a string"
+      "estimatedTotalCost": "₹..."
     }`;
 
     const text = await generateWithRetry(model, prompt);
     res.json(JSON.parse(text));
-    console.log("✅ Itinerary generated successfully!");
+    console.log("✅ Operation Successful!");
   } catch (error) {
     console.error("❌ Itinerary Error:", error.message);
-    res
-      .status(500)
-      .json({ error: "Failed to generate plan. AI is currently busy." });
+    res.status(500).json({ error: "Failed to process plan. AI is busy." });
   }
 });
 
-// --- RENDER DEPLOYMENT PORT CONFIG ---
-// Use process.env.PORT to allow Render to bind its port
 const PORT = process.env.PORT || 5000;
-
-// Listen on 0.0.0.0 (required for Render to see the service)
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
