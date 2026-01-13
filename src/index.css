@@ -47,3 +47,9 @@ html, body, #root {
   scrollbar-width: none;
   /* Firefox */
 }
+/* In index.css */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;400;800&display=swap');
+
+body {
+  font-family: 'Plus+Jakarta+Sans', sans-serif;
+}

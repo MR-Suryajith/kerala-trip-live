@@ -1,220 +1,285 @@
-import React from 'react';
+import React, { useState } from 'react';
 import MapComponent from './MapComponent';
+import jsPDF from 'jspdf';
+import { Download, RefreshCw, Zap, Wind, Utensils, Film, Gamepad2, MapPin, Navigation } from 'lucide-react';
 
 export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
-  // Safety check: Ensure itinerary and logistics exist
+  const [isGenerating, setIsGenerating] = useState(false);
+
   if (!itinerary || !itinerary.days || !itinerary.initialLogistics) return null;
 
-  // Helper function to safely render the budget if it comes as an object
+  // --- 1. TRAFFIC UI LOGIC ---
+  const getTrafficDetails = (status) => {
+    const s = status?.toLowerCase() || '';
+    if (s.includes('high')) return { color: 'text-red-400', bg: 'bg-red-500/20', label: 'HEAVY' };
+    if (s.includes('moderate')) return { color: 'text-yellow-400', bg: 'bg-yellow-500/20', label: 'MODERATE' };
+    return { color: 'text-emerald-400', bg: 'bg-emerald-500/20', label: 'CLEAR' };
+  };
+
   const renderBudget = (budget) => {
     if (typeof budget === 'object' && budget !== null) {
-      return `₹${budget.value || budget.total || budget.amount || 'Calculated'}`;
+      return `₹${budget.value || budget.total || 'Calculated'}`;
     }
     return budget;
   };
 
-  return (
-    <div className="max-w-6xl mx-auto p-4 animate-fade-in pb-20 text-white">
-      
-      {/* 🌤️ SEASONAL INTELLIGENCE CARD */}
-      {itinerary.seasonalNote && (
-        <div className="bg-yellow-400/20 backdrop-blur-md border border-yellow-400/30 p-6 rounded-[2rem] mb-12 flex items-center gap-6 shadow-2xl transition-all hover:bg-yellow-400/30">
-            <div className="bg-yellow-400 text-black p-3 rounded-2xl text-2xl shadow-lg">💡</div>
-            <div>
-                <p className="text-yellow-400 text-[10px] font-black uppercase tracking-widest mb-1">Seasonal Insight</p>
-                <p className="text-yellow-50 font-medium italic leading-relaxed">"{itinerary.seasonalNote}"</p>
-            </div>
-        </div>
-      )}
+  // --- 2. VECTOR PDF GENERATION LOGIC (Searchable & Sharp) ---
+  const exportPDF = () => {
+    setIsGenerating(true);
+    const doc = new jsPDF();
+    let yPos = 20;
 
-      {/* ✈️ TRAVEL HUB: THE JOURNEY TO KERALA */}
-      <div className="bg-white/10 backdrop-blur-2xl rounded-[2.5rem] p-8 mb-12 border border-white/20 shadow-2xl">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
-          <div className="flex items-center gap-4">
-            <div className="bg-indigo-500 p-4 rounded-3xl text-3xl shadow-lg">✈️</div>
-            <div>
-              <h2 className="text-4xl font-black italic">Travel Hub</h2>
-              <p className="text-blue-300 font-bold uppercase text-[10px] tracking-[0.3em]">Arrival Logistics</p>
-            </div>
-          </div>
+    // Header
+    doc.setFillColor(15, 23, 42); 
+    doc.rect(0, 0, 210, 40, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(22);
+    doc.text('SANCHAARA AI: KERALA TRIP PLAN', 20, 25);
+    doc.setFontSize(10);
+    doc.text(`Estimated Budget: ${renderBudget(itinerary.estimatedTotalCost)}`, 20, 32);
+
+    yPos = 55;
+
+    // Logistics
+    doc.setTextColor(34, 197, 94);
+    doc.setFontSize(12);
+    doc.text('TRAVEL HUB LOGISTICS', 20, yPos);
+    doc.setTextColor(80, 80, 80);
+    doc.setFontSize(10);
+    doc.text(`From: ${itinerary.initialLogistics.from} | To: ${itinerary.initialLogistics.to} | ${itinerary.initialLogistics.mode}`, 20, yPos + 7);
+    yPos += 20;
+
+    // Days Loop
+    itinerary.days.forEach((day, dIdx) => {
+      if (yPos > 240) { doc.addPage(); yPos = 20; }
+      
+      doc.setFillColor(240, 240, 240);
+      doc.rect(20, yPos, 170, 10, 'F');
+      doc.setTextColor(37, 99, 235);
+      doc.text(`DAY ${dIdx + 1}: ${day.cityLocation} (${day.date || ''})`, 25, yPos + 7);
+      yPos += 15;
+
+      day.places.forEach((place) => {
+        if (yPos > 250) { doc.addPage(); yPos = 20; }
+        doc.setTextColor(0, 0, 0);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`• ${place.name} (${place.time})`, 25, yPos);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(100, 100, 100);
+        const splitDesc = doc.splitTextToSize(place.description, 160);
+        doc.text(splitDesc, 25, yPos + 5);
+        yPos += (splitDesc.length * 5) + 10;
+      });
+      yPos += 10;
+    });
+
+    doc.save(`Itenary-by-Sanchaara.pdf`);
+    setIsGenerating(false);
+  };
+
+  return (
+    <div className="min-h-screen w-full p-4 md:p-8 animate-fade-in relative z-10 text-white">
+      
+      {/* 🧭 GLASS NAVIGATION */}
+      <nav className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center mb-12 gap-6 bg-white/5 backdrop-blur-2xl p-6 rounded-[2.5rem] border border-white/10 shadow-2xl">
+        <div>
+          <h2 className="text-4xl font-black tracking-tighter">SANCHAARA <span className="text-blue-400">AI</span></h2>
+          <p className="text-[9px] font-bold uppercase tracking-[0.4em] text-white/40">Intelligent Concierge</p>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <button onClick={onEdit} className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl transition-all border border-white/10 group" title="New Search">
+            <RefreshCw className="w-5 h-5 text-white/60 group-hover:rotate-180 transition-transform duration-500" />
+          </button>
           <button 
-            onClick={onEdit} 
-            className="bg-white/10 hover:bg-white/20 border border-white/30 px-8 py-3 rounded-full font-black transition-all text-sm uppercase tracking-widest"
+            onClick={exportPDF}
+            disabled={isGenerating}
+            className="flex items-center gap-3 bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-900/20 transition-all disabled:opacity-50"
           >
-            🔄 NEW SEARCH
+            <Download className="w-4 h-4" />
+            {isGenerating ? 'Processing...' : 'Export PDF'}
           </button>
         </div>
+      </nav>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-          <div className="space-y-6">
-            <div className="bg-white/5 p-6 rounded-3xl border border-white/10 relative overflow-hidden group">
-               <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-1">Phase 1: Transit</p>
-               <h4 className="text-2xl font-black">{itinerary.initialLogistics.from} ➔ {itinerary.initialLogistics.to}</h4>
-               <p className="text-sm text-indigo-300 font-bold mt-1">Mode: {itinerary.initialLogistics.mode}</p>
-               <div className="flex gap-4 mt-4">
-                 <div className="bg-green-500/20 px-4 py-2 rounded-2xl text-green-300 text-xs font-black">📏 {itinerary.initialLogistics.distance}</div>
-                 <div className="bg-blue-500/20 px-4 py-2 rounded-2xl text-blue-300 text-xs font-black">🕒 {itinerary.initialLogistics.duration}</div>
-               </div>
+      <main className="max-w-7xl mx-auto space-y-16">
+        
+        {/* ✈️ DEPARTURE SECTION (Glass style) */}
+        <section className="bg-white/5 backdrop-blur-xl rounded-[3rem] border border-white/10 shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-3">
+          <div className="p-10 lg:col-span-1 flex flex-col justify-center border-r border-white/5">
+            <div className="flex items-center gap-2 mb-4">
+                <Navigation className="w-4 h-4 text-blue-400" />
+                <span className="text-blue-400 font-black text-[10px] tracking-widest uppercase">Transit Log</span>
             </div>
-
-            <div className="bg-white/5 p-6 rounded-3xl border border-white/10 relative overflow-hidden group">
-               <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-1">Phase 2: Arrival Transfer</p>
-               <h4 className="text-2xl font-black">{itinerary.arrivalLogistics.from} ➔ {itinerary.arrivalLogistics.to}</h4>
-               <div className="flex gap-4 mt-4">
-                 <div className="bg-green-500/20 px-4 py-2 rounded-2xl text-green-300 text-xs font-black">📏 {itinerary.arrivalLogistics.distance}</div>
-                 <div className="bg-blue-500/20 px-4 py-2 rounded-2xl text-blue-300 text-xs font-black">🕒 {itinerary.arrivalLogistics.duration}</div>
-               </div>
+            <h3 className="text-4xl font-black mb-8 leading-tight">
+              {itinerary.initialLogistics.from} <br/>
+              <span className="text-white/20 text-2xl font-light">➔</span> {itinerary.initialLogistics.to}
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
+                <p className="text-white/30 text-[9px] font-bold uppercase mb-1">Method</p>
+                <p className="font-black text-sm uppercase">{itinerary.initialLogistics.mode}</p>
+              </div>
+              <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
+                <p className="text-white/30 text-[9px] font-bold uppercase mb-1">Dist.</p>
+                <p className="font-black text-sm text-green-400">{itinerary.initialLogistics.distance}</p>
+              </div>
             </div>
           </div>
+          <div className="lg:col-span-2 h-[350px] opacity-80 hover:opacity-100 transition-opacity">
+            <MapComponent origin={itinerary.initialLogistics.from} destination={itinerary.initialLogistics.to} isFlight={true} />
+          </div>
+        </section>
 
-          <MapComponent 
-            origin={itinerary.initialLogistics.from} 
-            destination={itinerary.initialLogistics.to} 
-            isFlight={true} 
-          />
-        </div>
-      </div>
-
-      {/* 🌴 DAILY ITINERARY SECTION */}
-      <div className="space-y-16">
-        <div className="text-center mb-10">
-            <h3 className="text-2xl font-black text-green-400 uppercase tracking-[0.2em] drop-shadow-lg">Curated Sightseeing</h3>
-        </div>
-
-        {itinerary.days.map((day) => (
-          <div key={day.dayNumber} className="bg-white/10 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col lg:flex-row border border-white/20">
-            
-            <div className="flex-[2] border-r border-white/5">
-              {/* Day Header with Real Date */}
-              <div className="bg-gradient-to-r from-green-500/60 to-blue-600/60 p-8 text-white backdrop-blur-md">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <span className="bg-black/30 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
-                        {day.date || `DAY ${day.dayNumber}`}
-                    </span>
-                    <h3 className="text-4xl font-black mt-3">{day.cityLocation}</h3>
+        {/* 📅 DAILY CARDS */}
+        <div className="space-y-24">
+          {itinerary.days.map((day, dayIdx) => (
+            <div key={dayIdx} className="bg-white/5 backdrop-blur-3xl rounded-[3.5rem] border border-white/10 shadow-2xl overflow-hidden">
+              
+              {/* Day Header with Weather */}
+              <div className="bg-gradient-to-r from-blue-600/20 to-emerald-500/10 p-8 border-b border-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
+                <div className="flex items-center gap-6">
+                  <div className="w-16 h-16 bg-blue-600 text-white rounded-3xl flex flex-col items-center justify-center shadow-lg shadow-blue-900/40">
+                    <span className="text-[10px] font-black uppercase opacity-60">Day</span>
+                    <span className="text-3xl font-black leading-none">{dayIdx + 1}</span>
                   </div>
-                  <div className="bg-white/10 backdrop-blur-xl p-4 rounded-3xl flex items-center gap-4 border border-white/20">
-                    <span className="text-5xl">{day.weather.icon}</span> 
-                    <div className="text-right">
-                      <p className="text-3xl font-black tracking-tighter">{day.weather.temp}</p>
-                      <p className="text-[10px] uppercase font-bold opacity-70">{day.weather.condition}</p>
-                    </div>
+                  <div>
+                    <p className="text-blue-400 text-[10px] font-black uppercase tracking-[0.2em]">{day.date || 'The Journey'}</p>
+                    <h4 className="text-4xl font-black tracking-tighter">{day.cityLocation}</h4>
                   </div>
                 </div>
-                <div className="mt-6 bg-black/20 p-4 rounded-2xl border-l-4 border-yellow-400 text-sm italic font-medium">
-                  "{day.weather.advice}"
+                <div className="flex items-center gap-5 bg-white/5 px-6 py-4 rounded-3xl border border-white/10">
+                   <span className="text-4xl">{day.weather?.icon || "🌤️"}</span>
+                   <div className="text-right">
+                     <p className="text-2xl font-black tracking-tighter">{day.weather?.temp || "24°C"}</p>
+                     <p className="text-[9px] font-black uppercase text-white/40">{day.weather?.condition}</p>
+                   </div>
                 </div>
               </div>
 
-              {/* Places List - Increased space-y to 32 to prevent overlapping badges */}
-              <div className="p-8 space-y-32"> 
-                {day.places.map((place, idx) => {
-                  // Determine where the user is coming from for the Map
-                  const mapOrigin = (idx === 0 && day.dayNumber === 1) 
-                    ? itinerary.arrivalLogistics.from 
-                    : (idx === 0 ? "Hotel in " + day.cityLocation : day.places[idx - 1].name);
-
-                  const trafficIsHigh = place.trafficStatus?.toLowerCase().includes('high');
-
-                  return (
-                    <div key={idx} className="relative pl-10 border-l-2 border-dashed border-white/20 last:border-0 pb-2">
-                      
-                      {/* 🚗 Distance Badge */}
-                      <div className="absolute -left-[10px] -top-12 z-20">
-                        <div className="bg-green-500/40 backdrop-blur-md border border-green-400/50 px-4 py-2 rounded-full text-[10px] font-black text-white shadow-2xl whitespace-nowrap">
-                          🚗 {idx === 0 && day.dayNumber === 1 ? itinerary.arrivalLogistics.distance : (place.distanceFromPrevious || '0 km')}
-                          {place.travelTimeFromPrevious && ` • 🕒 ${place.travelTimeFromPrevious}`}
-                        </div>
-                      </div>
-
-                      {/* Rank Indicator */}
-                      <div className="absolute -left-[18px] top-0 bg-yellow-400 text-black w-8 h-8 rounded-full flex items-center justify-center font-black text-xs shadow-lg z-10">
-                        {place.rank}
-                      </div>
-
-                      <div className="flex justify-between items-start mb-2">
-                        <h4 className="text-2xl font-black text-white drop-shadow-sm">{place.name}</h4>
-                        <span className={`text-[10px] font-black px-4 py-1.5 rounded-full border shadow-sm ${
-                          trafficIsHigh ? 'bg-red-500/20 text-red-300 border-red-500/30' : 'bg-green-500/20 text-green-300 border-green-500/30'
-                        }`}>
-                          🚦 {place.trafficStatus?.toUpperCase() || 'MODERATE'} TRAFFIC
-                        </span>
-                      </div>
-
-                      <p className="text-blue-300 font-bold text-[11px] mb-4 uppercase tracking-widest">⏰ Time Suggestion: {place.time}</p>
-                      <p className="text-white/70 leading-relaxed mb-6 text-sm md:text-base">{place.description}</p>
-
-                      {/* THE SMART MAP (Uses mapOrigin corrected variable) */}
-                      <MapComponent 
-                        origin={mapOrigin} 
-                        destination={place.name + ", " + day.cityLocation} 
-                        isFlight={false} 
-                      />
-
-                      {/* ✅ INTERACTIVE PLAN B SECTION (Corrected Logic) */}
-                      {place.alternativePlace && (
-                        <div className="mt-10 pt-6 border-t border-white/10 group/alt relative">
-                          <p className="text-[10px] font-black text-yellow-400 uppercase tracking-widest mb-3">
-                            🔄 Alternative Plan B
-                          </p>
-                          <div className="bg-white/5 border border-white/10 p-5 rounded-2xl group-hover/alt:bg-white/10 transition-all shadow-xl">
-                            <p className="text-blue-100 text-sm font-medium italic leading-relaxed mb-4">
-                              "{place.altReason || 'A great alternative nearby.'}"
+              <div className="flex flex-col xl:flex-row">
+                <div className="flex-[2.5] p-8 md:p-14 space-y-24 border-r border-white/5">
+                  {day.places?.map((place, pIdx) => {
+                    const traffic = getTrafficDetails(place.trafficStatus);
+                    return (
+                      <div key={pIdx} className="group relative">
+                        <div className="flex flex-col md:flex-row gap-10">
+                          <div className="md:w-32 shrink-0">
+                             <div className="flex items-center gap-2 text-white/30 mb-2">
+                                <Zap className="w-3 h-3" />
+                                <span className="text-[9px] font-black uppercase tracking-widest">Arrival</span>
+                             </div>
+                             <p className="text-2xl font-black text-white">{place.time}</p>
+                             <div className={`inline-flex items-center gap-2 mt-3 px-3 py-1.5 rounded-xl text-[9px] font-black ${traffic.bg} ${traffic.color} border border-white/5`}>
+                               <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse"></span>
+                               {traffic.label}
+                             </div>
+                          </div>
+                          <div className="flex-1">
+                            <h5 className="text-3xl font-black text-white mb-6 group-hover:text-blue-400 transition-colors tracking-tight">
+                              {place.name}
+                            </h5>
+                            <p className="text-white/60 mb-8 leading-relaxed italic text-lg border-l-2 border-white/10 pl-6 py-2">
+                              {place.description}
                             </p>
-                            <button 
-                                onClick={() => onSwitchPlan(day.dayNumber, place.name, place.alternativePlace)}
-                                className="w-full bg-green-500/20 hover:bg-green-600 text-green-300 hover:text-white border border-green-500/30 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg active:scale-95"
-                            >
-                                Switch to {place.alternativePlace}
-                            </button>
+                            <div className="rounded-3xl overflow-hidden border border-white/10 shadow-2xl h-72">
+                              <MapComponent origin={day.cityLocation} destination={place.name} />
+                            </div>
+                            
+                            {place.alternativePlace && (
+                              <div className="mt-8 bg-white/5 border border-white/10 p-6 rounded-3xl flex flex-col md:flex-row justify-between items-center gap-4 hover:bg-white/10 transition-all">
+                                <div>
+                                  <p className="text-[9px] font-black text-yellow-500 uppercase tracking-widest mb-1">Recommended Alternative</p>
+                                  <p className="text-lg font-bold text-white/90">{place.alternativePlace}</p>
+                                </div>
+                                <button 
+                                  onClick={() => onSwitchPlan(day.dayNumber, place.name, place.alternativePlace)}
+                                  className="bg-white text-black px-6 py-3 rounded-2xl font-black text-[10px] uppercase hover:bg-green-400 transition-all active:scale-95"
+                                >
+                                  Swap Spot
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </div>
-                      )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <aside className="flex-1 bg-white/5 p-12 flex flex-col justify-between">
+                  <div>
+                    <h6 className="text-xs font-black text-white/40 uppercase tracking-[0.4em] mb-12 flex items-center gap-3">
+                        <Wind className="w-5 h-5 text-blue-400" /> Daily Dose
+                    </h6>
+                    
+                    <div className="space-y-12">
+                        {[
+                        { type: 'recipe', icon: <Utensils />, color: 'bg-orange-500/20 text-orange-400' },
+                        { type: 'movie', icon: <Film />, color: 'bg-blue-500/20 text-blue-400' },
+                        { type: 'game', icon: <Gamepad2 />, color: 'bg-emerald-500/20 text-emerald-400' }
+                        ].map((item) => (
+                        <div key={item.type} className="group/dose">
+                            <div className="flex items-center gap-4 mb-3">
+                                <div className={`p-3 rounded-2xl ${item.color} border border-white/5`}>
+                                    {item.icon}
+                                </div>
+                                <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">
+                                    {item.type}
+                                </span>
+                            </div>
+                            <p className="text-white/80 font-bold text-base pl-1 group-hover/dose:translate-x-2 transition-transform duration-300">
+                            {day.dailyDose?.[item.type] || "..."}
+                            </p>
+                        </div>
+                        ))}
                     </div>
-                  );
-                })}
+                  </div>
+
+                  <div className="mt-20 p-8 bg-black/40 rounded-3xl border border-white/5 shadow-inner">
+                    <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-3">
+                      💡 Concierge Tip
+                    </p>
+                    <p className="text-sm text-white/50 leading-relaxed font-medium italic">
+                      "{day.weather?.advice || 'Stay hydrated and carry local currency for small entries.'}"
+                    </p>
+                  </div>
+                </aside>
               </div>
             </div>
-
-            {/* Sidebar: Daily Dose (Movies/Food/Games) */}
-            <div className="flex-1 w-full lg:w-80 bg-white/5 p-10 backdrop-blur-lg border-t lg:border-t-0 lg:border-l border-white/10">
-               <h4 className="text-xl font-black mb-8 pb-4 border-b border-white/10 flex items-center gap-2">Daily Dose 🪄</h4>
-               <div className="space-y-12">
-                 {['recipe', 'movie', 'game'].map((item) => (
-                   <div key={item} className="group">
-                     <p className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-3">{item}</p>
-                     <div className="flex items-start gap-4">
-                       <span className="text-3xl bg-white/10 p-3 rounded-2xl border border-white/10 shadow-lg group-hover:scale-110 transition-transform">
-                        {item === 'recipe' ? '🍲' : item === 'movie' ? '🎬' : '🎮'}
-                       </span>
-                       <p className="text-sm font-bold text-white/80 group-hover:text-green-400 transition-colors leading-relaxed">
-                          {day.dailyDose ? day.dailyDose[item] : 'Discovering...'}
-                       </p>
-                     </div>
-                   </div>
-                 ))}
-               </div>
-               
-               <div className="mt-16 pt-10 border-t border-dashed border-white/10">
-                  <p className="text-[9px] text-white/20 font-bold text-center leading-tight uppercase tracking-widest">
-                    Seasonal Analytics Provided By Gemini 2.5 ✓
-                  </p>
-               </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Bottom Summary */}
-      <div className="mt-16 mb-24 text-center">
-        <div className="inline-block bg-white/10 backdrop-blur-2xl px-10 py-5 rounded-[2.5rem] border border-white/20 shadow-2xl">
-          <p className="text-white/40 text-[9px] font-black uppercase tracking-[0.3em]">Total Estimated Investment</p>
-          <p className="text-xl font-bold mt-1 text-white drop-shadow-md">
-            {renderBudget(itinerary.estimatedTotalCost)}
-          </p>
+          ))}
         </div>
+
+        {/* 💰 BUDGET SUMMARY */}
+<footer className="text-center py-32 relative">
+  {/* The background glow is now larger and multi-colored */}
+  <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-emerald-500/10 to-blue-600/10 blur-[140px] rounded-full"></div>
+  
+  <div className="relative inline-block group">
+    {/* Animated Border Gradient for extra attraction */}
+    <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-[3rem] blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
+    
+    <div className="relative bg-slate-900/40 backdrop-blur-3xl border border-white/10 px-16 py-10 rounded-[3rem] shadow-2xl">
+      {/* Label: Ultra-premium thin, wide text */}
+      <p className="text-white/40 text-[11px] font-medium uppercase tracking-[0.7em] mb-4">
+        Total Estimated Investment
+      </p>
+      
+      {/* Budget: Large, Gradient Text */}
+      <p className="text-2xl md:text-3xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-white via-white to-white/50 drop-shadow-2xl">
+        {renderBudget(itinerary.estimatedTotalCost)}
+      </p>
+      
+      {/* A tiny subtle checkmark or verified tag */}
+      <div className="mt-4 flex items-center justify-center gap-2 text-[10px] font-bold text-emerald-400/60 tracking-widest uppercase">
+        <span className="w-8 h-[1px] bg-emerald-500/20"></span>
+        AI Verified Precision
+        <span className="w-8 h-[1px] bg-emerald-500/20"></span>
       </div>
+    </div>
+  </div>
+</footer>
+      </main>
     </div>
   );
 }
