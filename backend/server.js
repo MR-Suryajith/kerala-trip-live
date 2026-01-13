@@ -11,7 +11,7 @@ app.use(express.json());
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// Helper function for "Retry" to handle 429/503 errors during high traffic
+// Helper function for "Retry" to handle 429/503 errors
 const generateWithRetry = async (model, prompt, retries = 3, delay = 2000) => {
   for (let i = 0; i < retries; i++) {
     try {
@@ -23,9 +23,7 @@ const generateWithRetry = async (model, prompt, retries = 3, delay = 2000) => {
         error.message.includes("503") ||
         error.message.includes("overloaded")
       ) {
-        console.log(
-          `⚠️ AI Busy, retrying in ${delay}ms... (Attempt ${i + 1}/${retries})`
-        );
+        console.log(`⚠️ AI Busy, retrying in ${delay}ms...`);
         await new Promise((res) => setTimeout(res, delay));
         delay *= 2;
       } else {
@@ -42,7 +40,6 @@ const generateWithRetry = async (model, prompt, retries = 3, delay = 2000) => {
 app.post("/api/chat", async (req, res) => {
   try {
     const { message, history, itineraryContext } = req.body;
-
     let conciergePrompt =
       "You are SANCHAARA AI, a specialized travel concierge for Kerala. Be concise (max 2 sentences). Use emojis.";
     if (itineraryContext) {
@@ -50,12 +47,10 @@ app.post("/api/chat", async (req, res) => {
         itineraryContext.destination
       }. Current spots: ${itineraryContext.placesMentioned?.join(", ")}.`;
     }
-
     const model = genAI.getGenerativeModel({
       model: "gemini-2.5-flash-lite",
       systemInstruction: conciergePrompt,
     });
-
     let cleanHistory = (history || []).filter(
       (item) => item.parts[0].text.trim() !== ""
     );
@@ -66,81 +61,90 @@ app.post("/api/chat", async (req, res) => {
       cleanHistory[cleanHistory.length - 1].role === "user"
     )
       cleanHistory.pop();
-
     const chat = model.startChat({ history: cleanHistory });
     const result = await chat.sendMessage(message);
     const response = await result.response;
-
     res.json({ reply: response.text() });
   } catch (error) {
     console.error("❌ Chat Error:", error.message);
-    res.status(200).json({
-      reply: "I'm refreshing my knowledge. Ask me again in 5 seconds! 🛶",
-    });
+    res.status(200).json({ reply: "Refreshing... try again in 5 seconds! 🛶" });
   }
 });
 
-// --- ITINERARY ENDPOINT (Supports Swapping Spots) ---
+// --- ITINERARY ENDPOINT (Supports Phases 9 & 10) ---
 app.post("/api/generate-itinerary", async (req, res) => {
   try {
     const { formData } = req.body;
-
     const model = genAI.getGenerativeModel({
       model: "gemini-2.5-flash-lite",
       generationConfig: { responseMimeType: "application/json" },
     });
 
     console.log(`✈️ Planning: ${formData.origin} ➔ ${formData.destination}`);
-    if (formData.specialInstruction)
-      console.log(`🔄 Modification: ${formData.specialInstruction}`);
 
-    // 🔥 DYNAMIC PROMPT: Includes the Special Instruction if the user clicked "Swap"
-    const prompt = `Act as a Kerala Travel Expert. 
+    // 🔥 UPGRADED PROMPT for Phases 9 (Local Pulse) and 10 (Financials)
+    const prompt = `Act as a Kerala Travel Expert, Cultural Historian, and Financial Planner. 
+    Generate a ${formData.days}-day trip from ${formData.origin} to ${
+      formData.destination
+    }.
+    Dates: ${formData.startDate} to ${formData.endDate}. Travelers: ${
+      formData.travelers
+    }. Budget: ₹${formData.budget}.
+    
     ${
       formData.specialInstruction
-        ? `⚠️ URGENT CHANGE REQUEST: ${formData.specialInstruction}. YOU MUST DELETE the old place and replace it with the new alternative provided. Recalculate all distances/times for that day to match the new location.`
+        ? `URGENT CHANGE: ${formData.specialInstruction}`
         : ""
     }
 
-    Generate a ${formData.days}-day trip itinerary from ${formData.origin} to ${
-      formData.destination
-    }.
-    Travelers: ${formData.travelers}. Budget: ₹${formData.budget}. Dates: ${
-      formData.startDate
-    }.
-    Interests: ${formData.interests.join(", ")}.
+    STRICT JSON REQUIREMENTS:
+    1. localPulse: Array of strings. Identify specific festivals, temple fairs, or events happening in Kerala during these EXACT dates (e.g. Thrissur Pooram, Onam, Vishu, Boat Races).
+    2. budgetAnalysis: Breakdown the total ₹${
+      formData.budget
+    } into logical estimates for: Stay, Food, Transport, and Sightseeing. Also calculate perPerson cost for ${
+      formData.travelers
+    } people.
+    3. weather icon: Use ONLY real emojis (☀️, 🌧️, ☁️). NEVER use technical codes like "01d".
+    4. estimatedTotalCost: MUST be a simple string.
 
     Return ONLY a JSON object:
     {
+      "localPulse": ["Event 1 happening near you", "Event 2 info"],
+      "budgetAnalysis": {
+        "total": "₹${formData.budget}",
+        "perPerson": "₹...",
+        "breakdown": { "stay": "₹...", "food": "₹...", "transport": "₹...", "sightseeing": "₹..." }
+      },
       "initialLogistics": { "from": "${
         formData.origin
       }", "to": "Gateway", "mode": "...", "distance": "km", "duration": "..." },
       "arrivalLogistics": { "from": "Gateway", "to": "First Spot", "distance": "km", "duration": "..." },
-      "seasonalNote": "Personalized advice for ${formData.startDate}",
+      "seasonalNote": "Personalized seasonal advice for ${formData.startDate}",
       "days": [{
         "dayNumber": 1,
-        "date": "...",
         "cityLocation": "...",
-        "weather": { "temp": "...", "condition": "...", "icon": "Use ONLY a real emoji like ☀️ or 🌧️, NEVER a code like 01d",: "...", "advice": "..." },
+        "weather": { "temp": "...", "condition": "...", "icon": "emoji", "advice": "..." },
         "dailyDose": { "recipe": "...", "movie": "...", "game": "..." },
         "places": [{ 
           "name": "...", 
           "rank": 9.5,
           "time": "...",
-          "trafficStatus": "High/Moderate/Low",
-          "distanceFromPrevious": "km",
-          "travelTimeFromPrevious": "mins",
+          "trafficStatus": "...",
+          "distanceFromPrevious": "...",
+          "travelTimeFromPrevious": "...",
           "description": "...",
           "alternativePlace": "...",
           "altReason": "..."
         }]
       }],
-      "estimatedTotalCost": "₹..."
+      "estimatedTotalCost": "₹${formData.budget} for ${
+      formData.travelers
+    } people"
     }`;
 
     const text = await generateWithRetry(model, prompt);
     res.json(JSON.parse(text));
-    console.log("✅ Operation Successful!");
+    console.log("✅ Itinerary with Financials & Local Pulse generated!");
   } catch (error) {
     console.error("❌ Itinerary Error:", error.message);
     res.status(500).json({ error: "Failed to process plan. AI is busy." });
