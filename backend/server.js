@@ -8,6 +8,7 @@ const app = express();
 // 1. Render-friendly Middlewares
 app.use(cors());
 app.use(express.json());
+app.use(cors({ origin: "*" }));
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
