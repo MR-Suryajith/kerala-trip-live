@@ -4,20 +4,28 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 require("dotenv").config();
 
 const app = express();
+
+// 1. Render-friendly Middlewares
 app.use(cors());
 app.use(express.json());
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// Helper function for "Retry" to handle 429/503 errors
+// Helper function for "Retry" to handle 429/503 errors during high traffic
 const generateWithRetry = async (model, prompt, retries = 3, delay = 2000) => {
   for (let i = 0; i < retries; i++) {
     try {
       const result = await model.generateContent(prompt);
       return result.response.text();
     } catch (error) {
-      if (error.message.includes("429") || error.message.includes("503")) {
-        console.log(`⚠️ Server busy/overloaded, retrying in ${delay}ms...`);
+      if (
+        error.message.includes("429") ||
+        error.message.includes("503") ||
+        error.message.includes("overloaded")
+      ) {
+        console.log(
+          `⚠️ AI Busy, retrying in ${delay}ms... (Attempt ${i + 1}/${retries})`
+        );
         await new Promise((res) => setTimeout(res, delay));
         delay *= 2;
       } else {
@@ -25,43 +33,41 @@ const generateWithRetry = async (model, prompt, retries = 3, delay = 2000) => {
       }
     }
   }
-  throw new Error("AI Quota exceeded. Please wait 10 seconds and try again.");
+  throw new Error(
+    "AI Quota exceeded. Please wait a few seconds and try again."
+  );
 };
 
-// --- CHATBOT ENDPOINT (Role Fix Applied) ---
+// --- CHATBOT ENDPOINT (Optimized for Render/Stability) ---
 app.post("/api/chat", async (req, res) => {
   try {
     const { message, history, itineraryContext } = req.body;
 
-    // 1. Create a specialized Concierge personality
     let conciergePrompt =
-      "You are KeralaLive AI, a helpful travel assistant. Be concise (1-2 sentences).";
+      "You are SANCHAARA AI, a specialized travel concierge for Kerala. Be concise (max 2 sentences). Use emojis.";
     if (itineraryContext) {
-      conciergePrompt += ` Context: The user is visiting ${
+      conciergePrompt += ` Context: User is viewing a trip to ${
         itineraryContext.destination
       } for ${
         itineraryContext.totalDays
-      } days. Current spots: ${itineraryContext.placesMentioned.join(
-        ", "
-      )}. Answer based on these spots.`;
+      } days. Spots include: ${itineraryContext.placesMentioned?.join(", ")}.`;
     }
 
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash-lite",
+      model: "gemini-2.5-flash-lite", // Use 2.5-flash for faster chat
       systemInstruction: conciergePrompt,
     });
 
-    // 2. CLEAN HISTORY: Gemini requires: First is 'user', then alternates, last is 'model'
+    // Gemini History Requirements: Must alternate [user, model, user, model]
     let cleanHistory = (history || []).filter(
       (item) => item.parts[0].text.trim() !== ""
     );
 
-    // Remove the very first message if it's from the bot (Namaskaram)
+    // Ensure history starts with 'user'
     if (cleanHistory.length > 0 && cleanHistory[0].role === "model") {
       cleanHistory.shift();
     }
-
-    // Ensure the history doesn't end with a 'user' role (sendMessage adds the next 'user' role)
+    // Ensure history ends with 'model' (because sendMessage adds the next 'user')
     if (
       cleanHistory.length > 0 &&
       cleanHistory[cleanHistory.length - 1].role === "user"
@@ -71,85 +77,86 @@ app.post("/api/chat", async (req, res) => {
 
     const chat = model.startChat({ history: cleanHistory });
     const result = await chat.sendMessage(message);
-    const text = result.response.text();
+    const response = await result.response;
 
-    res.json({ reply: text });
+    res.json({ reply: response.text() });
   } catch (error) {
     console.error("❌ Chat Error:", error.message);
-
-    // Check for Quota/Rate Limit (429)
-    if (error.message.includes("429") || error.message.includes("quota")) {
-      return res.status(200).json({
-        reply: "AI is a bit busy. Please wait 10 seconds and try again! 🌴",
-      });
-    }
-
-    res.status(500).json({
-      reply: "I'm having trouble connecting. Please try again in a moment! 🛶",
+    res.status(200).json({
+      reply: "I'm experiencing high traffic. Please try again in 5 seconds! 🛶",
     });
   }
 });
-// --- ITINERARY ENDPOINT ---
+
+// --- ITINERARY ENDPOINT (Pure JSON Generation) ---
 app.post("/api/generate-itinerary", async (req, res) => {
   try {
     const { formData } = req.body;
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
 
-    console.log(
-      `✈️ Planning Trip: ${formData.origin} ➔ ${formData.destination}`
-    );
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.5-flash-lite",
+      generationConfig: { responseMimeType: "application/json" }, // Forces pure JSON output
+    });
 
-    const prompt = `Act as a Kerala Travel Expert. 
-    Generate a ${formData.days}-day itinerary from ${formData.origin} to ${
-      formData.destination
-    }.
+    console.log(`✈️ Planning: ${formData.origin} ➔ ${formData.destination}`);
+
+    const prompt = `Act as a Kerala Travel Expert. Generate a ${
+      formData.days
+    }-day trip itinerary from ${formData.origin} to ${formData.destination}.
     Travelers: ${formData.travelers}. Budget: ₹${formData.budget}. Dates: ${
       formData.startDate
     }.
     Interests: ${formData.interests.join(", ")}.
 
+    INSTRUCTIONS:
+    - Provide 'initialLogistics' (Flight/Train distance and time).
+    - Provide 'arrivalLogistics' (Gateway to first stop).
+    - For EVERY place, calculate road distance/time from previous stop and a 'Plan B' alternativePlace.
+
     Return ONLY a JSON object:
     {
       "initialLogistics": { "from": "${
         formData.origin
-      }", "to": "Gateway", "mode": "Flight/Train", "distance": "km", "duration": "hrs" },
-      "arrivalLogistics": { "from": "Gateway", "to": "First Spot", "distance": "km", "duration": "mins" },
-      "seasonalNote": "Weather advice for ${formData.startDate}",
+      }", "to": "Gateway", "mode": "...", "distance": "km", "duration": "..." },
+      "arrivalLogistics": { "from": "Gateway", "to": "First Spot", "distance": "km", "duration": "..." },
+      "seasonalNote": "Personalized travel advice for ${formData.startDate}",
       "days": [{
         "dayNumber": 1,
-        "date": "Date",
-        "cityLocation": "City",
-        "weather": { "temp": "24°C", "condition": "Cloudy", "icon": "⛅", "advice": "Advice" },
+        "date": "...",
+        "cityLocation": "...",
+        "weather": { "temp": "...", "condition": "...", "icon": "...", "advice": "..." },
         "dailyDose": { "recipe": "...", "movie": "...", "game": "..." },
         "places": [{ 
           "name": "...", 
           "rank": 9.5,
-          "time": "10:00 AM",
-          "trafficStatus": "Low",
+          "time": "...",
+          "trafficStatus": "...",
           "distanceFromPrevious": "km",
           "travelTimeFromPrevious": "mins",
           "description": "...",
-          "alternativePlace": "Name",
-          "altReason": "Reason"
+          "alternativePlace": "...",
+          "altReason": "..."
         }]
       }],
-      "estimatedTotalCost": "₹${formData.budget} for all"
+      "estimatedTotalCost": "Total for all travelers as a string"
     }`;
 
     const text = await generateWithRetry(model, prompt);
-    const startJson = text.indexOf("{");
-    const endJson = text.lastIndexOf("}") + 1;
-    res.json(JSON.parse(text.substring(startJson, endJson)));
+    res.json(JSON.parse(text));
     console.log("✅ Itinerary generated successfully!");
   } catch (error) {
     console.error("❌ Itinerary Error:", error.message);
     res
       .status(500)
-      .json({ error: "Generation failed", message: error.message });
+      .json({ error: "Failed to generate plan. AI is currently busy." });
   }
 });
 
-const PORT = 5000;
-app.listen(PORT, () =>
-  console.log(`🚀 Server running on http://localhost:${PORT}`)
-);
+// --- RENDER DEPLOYMENT PORT CONFIG ---
+// Use process.env.PORT to allow Render to bind its port
+const PORT = process.env.PORT || 5000;
+
+// Listen on 0.0.0.0 (required for Render to see the service)
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});
