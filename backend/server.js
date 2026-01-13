@@ -121,7 +121,7 @@ app.post("/api/generate-itinerary", async (req, res) => {
         "dayNumber": 1,
         "date": "...",
         "cityLocation": "...",
-        "weather": { "temp": "...", "condition": "...", "icon": "...", "advice": "..." },
+        "weather": { "temp": "...", "condition": "...", "icon": "Use ONLY a real emoji like ☀️ or 🌧️, NEVER a code like 01d",: "...", "advice": "..." },
         "dailyDose": { "recipe": "...", "movie": "...", "game": "..." },
         "places": [{ 
           "name": "...", 
