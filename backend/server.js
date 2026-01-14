@@ -243,3 +243,5 @@ app.listen(PORT, "0.0.0.0", () => {
     `🔑 Key Status: ${process.env.GEMINI_API_KEY ? "CONFIGURED" : "MISSING"}`
   );
 });
+
+//test
