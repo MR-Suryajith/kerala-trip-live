@@ -6,25 +6,24 @@ const API_BASE_URL =
 
 export async function generateItinerary(formData) {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/generate-itinerary`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ formData }),
-    });
+    const response = await fetch(
+      "https://sanchaara-ai.onrender.com/api/generate-itinerary",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ formData }),
+      }
+    );
+
+    const data = await response.json();
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(
-        errorData.message || "Failed to generate itinerary. AI might be busy."
-      );
+      // This is what allows TripForm to show "Designed exclusively for Kerala"
+      throw new Error(data.error || "AI is busy");
     }
 
-    return await response.json();
+    return data;
   } catch (error) {
-    console.error("API Error:", error);
-    // Important: Rethrow the error so your TripForm can show the alert
     throw error;
   }
 }

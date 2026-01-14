@@ -36,21 +36,134 @@ const generateWithRetry = async (model, prompt, retries = 3, delay = 2000) => {
   );
 };
 
-// --- CHATBOT ENDPOINT ---
+// --- ITINERARY ENDPOINT (WHOLE INDIA VERSION) ---
+app.post("/api/generate-itinerary", async (req, res) => {
+  try {
+    const { formData } = req.body;
+    const dest = formData.destination.trim();
+
+    // STEP 1: AI VERIFICATION (Check if the location is in INDIA)
+    console.log(`🔍 Verifying if ${dest} is in India...`);
+    const validatorModel = genAI.getGenerativeModel({
+      model: "gemini-1.5-flash",
+    });
+    const verifyPrompt = `Is the place "${dest}" located within the country of INDIA? 
+    Answer ONLY with "TRUE" or "FALSE". If it is a famous international city or outside India, return "FALSE".`;
+
+    const checkResult = await validatorModel.generateContent(verifyPrompt);
+    const isIndia = checkResult.response
+      .text()
+      .trim()
+      .toUpperCase()
+      .includes("TRUE");
+
+    if (!isIndia) {
+      return res.status(400).json({
+        error:
+          "Sanchaara AI is currently optimized for Incredible India. Please enter a destination within India (e.g., Manali, Goa, Munnar, or Jaipur).",
+      });
+    }
+
+    // STEP 2: GENERATE ALL-INDIA ITINERARY
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.5-flash-lite", // or gemini-1.5-flash
+      generationConfig: { responseMimeType: "application/json" },
+    });
+
+    console.log(
+      `✈️ Planning India Journey: ${formData.origin} ➔ ${formData.destination}`
+    );
+
+    const prompt = `Act as an expert Indian Travel Guide and Financial Planner. 
+    Generate a ${formData.days}-day trip itinerary from ${formData.origin} to ${
+      formData.destination
+    }, India.
+    Dates: ${formData.startDate} to ${formData.endDate}. Travelers: ${
+      formData.travelers
+    }. Budget: ₹${formData.budget}.
+    Interests: ${formData.interests.join(", ")}.
+
+    STRICT JSON REQUIREMENTS:
+    1. localPulse: Identify specific Indian festivals (like Diwali, Holi, Onam, Hornbill Festival, etc.) or regional events happening near ${
+      formData.destination
+    } on these dates.
+    2. budgetAnalysis: Breakdown the total ₹${
+      formData.budget
+    } into logical estimates for: Stay, Food, Transport, and Sightseeing.
+    3. dailyDose: 
+       - recipe: Suggest a famous regional dish specific to the state being visited (e.g., Vada Pav for Maharashtra, Litti Chokha for Bihar, Sadya for Kerala).
+       - movie: Suggest a movie set in or related to that region.
+    4. initialLogistics: Calculate the best transit from ${
+      formData.origin
+    } to the nearest major Indian hub/airport for ${formData.destination}.
+
+    Return ONLY a JSON object:
+    {
+      "localPulse": ["Regional event/festival info"],
+      "budgetAnalysis": {
+        "total": "₹${formData.budget}",
+        "perPerson": "₹...",
+        "breakdown": { "stay": "₹...", "food": "₹...", "transport": "₹...", "sightseeing": "₹..." }
+      },
+      "initialLogistics": { "from": "${
+        formData.origin
+      }", "to": "Nearest Hub", "mode": "...", "distance": "km", "duration": "..." },
+      "arrivalLogistics": { "from": "Hub", "to": "First Spot", "distance": "km", "duration": "..." },
+      "seasonalNote": "Personalized advice for this region of India during ${
+        formData.startDate
+      }",
+      "days": [{
+        "dayNumber": 1,
+        "date": "...",
+        "cityLocation": "...",
+        "weather": { "temp": "...", "condition": "...", "icon": "☀️", "advice": "..." },
+        "dailyDose": { "recipe": "...", "movie": "...", "game": "..." },
+        "places": [{ 
+          "name": "...", 
+          "rank": 9.5,
+          "time": "...",
+          "trafficStatus": "Low/Moderate/High",
+          "distanceFromPrevious": "...",
+          "travelTimeFromPrevious": "...",
+          "description": "...",
+          "alternativePlace": "...",
+          "altReason": "..."
+        }]
+      }],
+      "estimatedTotalCost": "₹${formData.budget} total for ${
+      formData.travelers
+    } people"
+    }`;
+
+    const text = await generateWithRetry(model, prompt);
+    res.json(JSON.parse(text));
+  } catch (error) {
+    console.error("❌ Error:", error.message);
+    res.status(500).json({
+      error:
+        "Sanchaara AI is currently busy mapping your Indian Odyssey. Please try again.",
+    });
+  }
+});
+
+// --- CHATBOT ENDPOINT (UPDATED FOR INDIA) ---
 app.post("/api/chat", async (req, res) => {
   try {
     const { message, history, itineraryContext } = req.body;
     let conciergePrompt =
-      "You are SANCHAARA AI, a specialized travel concierge for Kerala. Be concise (max 2 sentences). Use emojis.";
+      "You are SANCHAARA AI, a travel concierge for INCREDIBLE INDIA. Provide deep insights into Indian culture, regional cuisines, safety, and hidden gems across all Indian states. Be concise. Use emojis.";
+
     if (itineraryContext) {
-      conciergePrompt += ` Context: User is viewing a trip to ${
+      conciergePrompt += ` The user is exploring ${
         itineraryContext.destination
       }. Current spots: ${itineraryContext.placesMentioned?.join(", ")}.`;
     }
+
     const model = genAI.getGenerativeModel({
       model: "gemini-2.5-flash-lite",
       systemInstruction: conciergePrompt,
     });
+
     let cleanHistory = (history || []).filter(
       (item) => item.parts[0].text.trim() !== ""
     );
@@ -61,97 +174,18 @@ app.post("/api/chat", async (req, res) => {
       cleanHistory[cleanHistory.length - 1].role === "user"
     )
       cleanHistory.pop();
+
     const chat = model.startChat({ history: cleanHistory });
     const result = await chat.sendMessage(message);
-    const response = await result.response;
-    res.json({ reply: response.text() });
+    res.json({ reply: (await result.response).text() });
   } catch (error) {
-    console.error("❌ Chat Error:", error.message);
-    res.status(200).json({ reply: "Refreshing... try again in 5 seconds! 🛶" });
-  }
-});
-
-// --- ITINERARY ENDPOINT (Supports Phases 9 & 10) ---
-app.post("/api/generate-itinerary", async (req, res) => {
-  try {
-    const { formData } = req.body;
-    const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash-lite",
-      generationConfig: { responseMimeType: "application/json" },
+    res.status(200).json({
+      reply: "I'm refreshing my knowledge of Indian terrains. Try again!",
     });
-
-    console.log(`✈️ Planning: ${formData.origin} ➔ ${formData.destination}`);
-
-    // 🔥 UPGRADED PROMPT for Phases 9 (Local Pulse) and 10 (Financials)
-    const prompt = `Act as a Kerala Travel Expert, Cultural Historian, and Financial Planner. 
-    Generate a ${formData.days}-day trip from ${formData.origin} to ${
-      formData.destination
-    }.
-    Dates: ${formData.startDate} to ${formData.endDate}. Travelers: ${
-      formData.travelers
-    }. Budget: ₹${formData.budget}.
-    
-    ${
-      formData.specialInstruction
-        ? `URGENT CHANGE: ${formData.specialInstruction}`
-        : ""
-    }
-
-    STRICT JSON REQUIREMENTS:
-    1. localPulse: Array of strings. Identify specific festivals, temple fairs, or events happening in Kerala during these EXACT dates (e.g. Thrissur Pooram, Onam, Vishu, Boat Races).
-    2. budgetAnalysis: Breakdown the total ₹${
-      formData.budget
-    } into logical estimates for: Stay, Food, Transport, and Sightseeing. Also calculate perPerson cost for ${
-      formData.travelers
-    } people.
-    3. weather icon: Use ONLY real emojis (☀️, 🌧️, ☁️). NEVER use technical codes like "01d".
-    4. estimatedTotalCost: MUST be a simple string.
-
-    Return ONLY a JSON object:
-    {
-      "localPulse": ["Event 1 happening near you", "Event 2 info"],
-      "budgetAnalysis": {
-        "total": "₹${formData.budget}",
-        "perPerson": "₹...",
-        "breakdown": { "stay": "₹...", "food": "₹...", "transport": "₹...", "sightseeing": "₹..." }
-      },
-      "initialLogistics": { "from": "${
-        formData.origin
-      }", "to": "Gateway", "mode": "...", "distance": "km", "duration": "..." },
-      "arrivalLogistics": { "from": "Gateway", "to": "First Spot", "distance": "km", "duration": "..." },
-      "seasonalNote": "Personalized seasonal advice for ${formData.startDate}",
-      "days": [{
-        "dayNumber": 1,
-        "cityLocation": "...",
-        "weather": { "temp": "...", "condition": "...", "icon": "emoji", "advice": "..." },
-        "dailyDose": { "recipe": "...", "movie": "...", "game": "..." },
-        "places": [{ 
-          "name": "...", 
-          "rank": 9.5,
-          "time": "...",
-          "trafficStatus": "...",
-          "distanceFromPrevious": "...",
-          "travelTimeFromPrevious": "...",
-          "description": "...",
-          "alternativePlace": "...",
-          "altReason": "..."
-        }]
-      }],
-      "estimatedTotalCost": "₹${formData.budget} for ${
-      formData.travelers
-    } people"
-    }`;
-
-    const text = await generateWithRetry(model, prompt);
-    res.json(JSON.parse(text));
-    console.log("✅ Itinerary with Financials & Local Pulse generated!");
-  } catch (error) {
-    console.error("❌ Itinerary Error:", error.message);
-    res.status(500).json({ error: "Failed to process plan. AI is busy." });
   }
 });
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🚀 Sanchaara Server running on port ${PORT}`);
 });

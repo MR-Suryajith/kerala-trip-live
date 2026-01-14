@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { SendHorizontal } from 'lucide-react';
 
 // Suggestions for the Home/Form Interface
 const GENERAL_SUGGESTIONS = [
   "🥘 Must-try local food?",
-  "🛡️ Is Kerala safe for solo travelers?",
-  "🚌 How to use KSRTC buses?",
-  "💎 Hidden gems in Kerala?",
+  "🛡️ Is India safe for solo travelers?",
+  "🚌 How to get public bus?",
+  "💎 Hidden gems in India?",
   "☔ Best places during Monsoon?"
 ];
 
@@ -22,7 +23,7 @@ export default function ChatBot({ itinerary }) {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState([
-    { role: "bot", text: "Namaskaram! 🙏 I'm your Kerala travel expert. How can I help you today?" }
+    { role: "bot", text: "Namaskar! 🙏 I'm your travel expert. How can I help you today?" }
   ]);
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef(null);
@@ -107,10 +108,10 @@ export default function ChatBot({ itinerary }) {
           {/* Header */}
           <div className="bg-gradient-to-r from-green-600 to-blue-600 p-4 text-white">
             <h4 className="font-black text-sm uppercase tracking-widest text-white">
-              {itinerary ? "Trip Concierge" : "Kerala Explorer"}
+              {itinerary ? "Trip Concierge" : "India Explorer"}
             </h4>
             <p className="text-[9px] opacity-70 italic text-white/80">
-              {itinerary ? "Personalized support for your trip" : "General Kerala guide"}
+              {itinerary ? "Personalized support for your trip" : "General Trip guide"}
             </p>
           </div>
 
@@ -156,13 +157,17 @@ export default function ChatBot({ itinerary }) {
               placeholder={itinerary ? "Ask about your trip..." : "Ask a general question..."}
               className="flex-1 bg-white/5 border border-white/20 rounded-xl px-4 py-2 text-white text-xs outline-none focus:border-green-500 transition-all placeholder:text-white/20"
             />
-            <button 
-              onClick={() => handleSend()}
-              disabled={loading}
-              className="bg-green-600 text-white px-3 py-2 rounded-xl text-sm hover:bg-green-50 active:scale-90 transition-all disabled:opacity-50"
-            >
-              🚀
-            </button>
+<button 
+  onClick={() => handleSend()}
+  disabled={loading}
+  className="bg-green-600 hover:bg-green-500 disabled:bg-slate-700 text-white w-12 h-12 rounded-2xl flex items-center justify-center transition-all active:scale-90 shadow-xl disabled:opacity-50"
+>
+  {loading ? (
+    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+  ) : (
+    <SendHorizontal className="w-6 h-6" />
+  )}
+</button>
           </div>
         </div>
       )}
