@@ -149,6 +149,7 @@ app.post("/api/generate-itinerary", async (req, res) => {
     } logically. Total and perPerson must be simple strings (e.g., "₹50,000").
     3. weather icon: Use ONLY one real emoji (☀️, 🌧️, ☁️, 🌫️, 🌩️).
     4. Places: Include rank(1-10), time, trafficStatus(Low/Moderate/High), distance/time from previous stop, and alternativePlace.
+    5. DATA PRECISION: Ensure 'coordinates' are as accurate as possible for the specific landmark.
 
     JSON FORMAT (MANDATORY):
     {
@@ -163,7 +164,19 @@ app.post("/api/generate-itinerary", async (req, res) => {
         "dayNumber": 1, "date": "...", "cityLocation": "...",
         "weather": { "temp": "...", "condition": "...", "icon": "emoji", "advice": "..." },
         "dailyDose": { "recipe": "...", "movie": "...", "game": "..." },
-        "places": [{ "name": "...", "rank": 9.5, "time": "...", "trafficStatus": "...", "distanceFromPrevious": "...", "travelTimeFromPrevious": "...", "description": "...", "alternativePlace": "...", "altReason": "..." }]
+        "places": [{ 
+            "name": "...",
+            "coordinates": { "lat": 0.0, "lng": 0.0 }, 
+            "crowdAnalysis": { "peakHours": "...", "occupancy": 80, "status": "Busy", "waitFactor": "20 mins", "trend": "rising" },
+            "rank": 9.5, 
+            "time": "...", 
+            "trafficStatus": "...", 
+            "distanceFromPrevious": "...", 
+            "travelTimeFromPrevious": "...", 
+            "description": "...", 
+            "alternativePlace": "...", 
+            "altReason": "..." 
+        }]
       }],
       "estimatedTotalCost": "₹... total for ${formData.travelers} people"
     }`;

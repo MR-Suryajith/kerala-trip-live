@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import MapComponent from './MapComponent';
 import jsPDF from 'jspdf';
+import CrowdAnalyzer from './CrowdAnalyzer';
+import SurvivalGrid from './SurvivalGrid';
 import { 
   Download, RefreshCw, Zap, Wind, Utensils, 
   Film, Gamepad2, Navigation, Clock, CheckCircle2,
@@ -222,62 +224,81 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
 
               <div className="flex flex-col xl:flex-row">
                 <div className="flex-[2.5] p-8 md:p-14 space-y-32 border-r border-white/5">
-                  {day.places?.map((place, pIdx) => {
-                    const traffic = getTrafficDetails(place.trafficStatus);
-                    const mapOrigin = pIdx === 0 
-                        ? (dayIdx === 0 ? itinerary.arrivalLogistics.from : "Hotel in " + day.cityLocation) 
-                        : day.places[pIdx - 1].name;
+{day.places?.map((place, pIdx) => {
+  const traffic = getTrafficDetails(place.trafficStatus);
+  
+  // Logic to determine where the user is coming from for the Map
+  const mapOrigin = pIdx === 0 
+      ? (dayIdx === 0 ? itinerary.arrivalLogistics.from : "Hotel in " + day.cityLocation) 
+      : day.places[pIdx - 1].name;
 
-                    return (
-                      <div key={pIdx} className="group relative">
-                        <div className="flex flex-col md:flex-row gap-12">
-                          
-                          {/* 🕒 TIME SECTION - FIXED OVERLAP */}
-                          <div className="md:w-52 shrink-0 flex flex-col">
-                             <div className="flex items-center gap-2 text-blue-400 mb-2">
-                                <Clock className="w-4 h-4 animate-pulse" />
-                                <span className="text-[11px] font-black uppercase tracking-[0.2em]">Arrival</span>
-                             </div>
-                             <p className="text-2xl md:text-3xl font-black text-white tracking-tight leading-tight italic break-words">
-                                {place.time}
-                             </p>
-                             
-                             <div className={`inline-flex items-center self-start gap-2 mt-4 px-3 py-1.5 rounded-xl text-[9px] font-black ${traffic.bg} ${traffic.color} border border-white/5`}>
-                               <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse"></span>
-                               {traffic.label} TRAFFIC
-                             </div>
-                             
-                             <div className="mt-4 bg-white/5 border border-white/10 rounded-xl px-4 py-2 self-start">
-                                <p className="text-[8px] font-bold text-white/30 uppercase tracking-widest mb-1">Route</p>
-                                <p className="text-[10px] font-black text-green-400 whitespace-nowrap tracking-tighter">
-                                  🚗 {pIdx === 0 && dayIdx === 0 ? itinerary.arrivalLogistics.distance : (place.distanceFromPrevious || 'Local')}
-                                </p>
-                             </div>
-                          </div>
+  return (
+    <div key={pIdx} className="group relative">
+      <div className="flex flex-col md:flex-row gap-12">
+        
+        {/* 🕒 TIME SECTION */}
+        <div className="md:w-60 shrink-0 flex flex-col">
+           <div className="flex items-center gap-2 text-blue-400 mb-2">
+              <Clock className="w-4 h-4 animate-pulse" />
+              <span className="text-[11px] font-black uppercase tracking-[0.2em]">Arrival</span>
+           </div>
+           <p className="text-2xl md:text-3xl font-black text-white tracking-tight leading-tight">
+              {place.time}
+           </p>
+           
+           <div className={`inline-flex items-center self-start gap-2 mt-4 px-3 py-1.5 rounded-xl text-[9px] font-black ${traffic.bg} ${traffic.color} border border-white/5`}>
+             <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse"></span>
+             {traffic.label} TRAFFIC
+           </div>
+        </div>
 
-                          <div className="flex-1 min-w-0">
-                            <h5 className="text-4xl font-black text-white mb-6 tracking-tight leading-tight group-hover:text-blue-300 transition-all">{place.name}</h5>
-                            <p className="text-white/60 mb-8 leading-relaxed italic text-lg border-l-2 border-blue-500/30 pl-6 py-1">{place.description}</p>
-                            <div className="rounded-[2.5rem] overflow-hidden border border-white/10 h-80 transition-all shadow-2xl">
-                              <MapComponent origin={mapOrigin} destination={place.name} />
-                            </div>
-                            
-                            {place.alternativePlace && (
-                              <div className="mt-12 bg-white/5 border border-white/10 p-8 rounded-[2.5rem] shadow-xl group/alt transition-all hover:bg-slate-900/50">
-                                <p className="text-yellow-500 text-[10px] font-black uppercase tracking-widest mb-4 flex items-center gap-2">
-                                  <RefreshCw className="w-3 h-3" /> Smart Swap Destination
-                                </p>
-                                <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-                                  <p className="text-xl font-bold text-white/90 italic">"{place.alternativePlace}"</p>
-                                  <button onClick={() => onSwitchPlan(day.dayNumber, place.name, place.alternativePlace)} className="bg-white text-black px-10 py-5 rounded-[1.5rem] font-black text-[10px] uppercase shadow-lg hover:bg-green-400 active:scale-95 transition-all">Swap Plan</button>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+        {/* ℹ️ MAIN CONTENT SECTION */}
+        <div className="flex-1 min-w-0">
+          <h5 className="text-4xl font-black text-white mb-6 tracking-tight leading-tight group-hover:text-blue-300 transition-all">
+            {place.name}
+          </h5>
+
+          {/* 📊 NEW: CROWD ANALYZER COMPONENT */}
+          <CrowdAnalyzer analysis={place.crowdAnalysis} />
+
+          <p className="text-white/60 mt-6 mb-8 leading-relaxed italic text-lg border-l-2 border-blue-500/30 pl-6 py-1">
+            {place.description}
+          </p>
+          
+          {/* 🗺️ THE MAP COMPONENT */}
+          <div className="rounded-[2.5rem] overflow-hidden border border-white/10 shadow-2xl transition-all hover:border-blue-500/30">
+            <MapComponent origin={mapOrigin} destination={place.name} />
+          </div>
+
+          {/* 🛡️ NEW: SURVIVAL GRID (Safety & Essentials) */}
+          {/* Passing the coordinates we added to the backend prompt */}
+          <SurvivalGrid 
+            lat={place.coordinates?.lat || 10.85} 
+            lng={place.coordinates?.lng || 76.27} 
+          />
+          
+          {/* PLAN B SWAP SECTION */}
+          {place.alternativePlace && (
+            <div className="mt-12 bg-white/5 border border-white/10 p-8 rounded-[2.5rem] shadow-xl group/alt transition-all hover:bg-slate-900/50">
+              <p className="text-yellow-500 text-[10px] font-black uppercase tracking-widest mb-4 flex items-center gap-2">
+                <RefreshCw className="w-3 h-3" /> Smart Swap Destination
+              </p>
+              <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+                <p className="text-xl font-bold text-white/90 italic">"{place.alternativePlace}"</p>
+                <button 
+                  onClick={() => onSwitchPlan(day.dayNumber, place.name, place.alternativePlace)}
+                  className="bg-white text-black px-10 py-5 rounded-[1.5rem] font-black text-[10px] uppercase shadow-lg hover:bg-green-400 active:scale-95 transition-all"
+                >
+                  Swap Plan
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+})}
                 </div>
 
                 <aside className="flex-1 bg-white/5 p-12">

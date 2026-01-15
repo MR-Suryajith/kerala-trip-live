@@ -117,3 +117,12 @@
     animation: gradient-xy 3s linear infinite;
   }
 }
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}
