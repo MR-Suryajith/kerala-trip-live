@@ -103,7 +103,7 @@ export default function TripForm({ onItinerary, onLoading }) {
         {/* Row 2: Calendar Dates */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="flex flex-col gap-2">
-             <label className="text-[10px] font-black uppercase tracking-widest ml-4 opacity-60 text-blue-400">Check-in Date</label>
+             <label className="text-[10px] font-black uppercase tracking-widest ml-4 opacity-60 text-blue-400">Starting-Date</label>
              <input 
                type="date" 
                min={today}
@@ -114,7 +114,7 @@ export default function TripForm({ onItinerary, onLoading }) {
              />
           </div>
           <div className="flex flex-col gap-2">
-             <label className="text-[10px] font-black uppercase tracking-widest ml-4 opacity-60 text-blue-400">Check-out Date</label>
+             <label className="text-[10px] font-black uppercase tracking-widest ml-4 opacity-60 text-blue-400">Ending-Date</label>
              <input 
                type="date" 
                min={formData.startDate || today}
