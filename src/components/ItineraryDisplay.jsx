@@ -354,7 +354,7 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
           <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-emerald-500/10 to-blue-600/10 blur-[140px] rounded-full animate-pulse"></div>
           <div className="relative inline-block bg-slate-950/60 backdrop-blur-3xl border border-white/10 px-24 py-12 rounded-[4rem] shadow-2xl">
             <p className="text-white/30 text-[11px] font-medium uppercase tracking-[0.7em] mb-6">Combined Valuation</p>
-            <p className="text-5xl md:text-6xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-white via-white/80 to-white/20 drop-shadow-2xl italic text-white">
+            <p className="text-5xl md:text-4xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-white via-white/80 to-white/20 drop-shadow-2xl italic text-white">
               {renderBudget(itinerary.estimatedTotalCost)}
             </p>
             <div className="mt-8 flex items-center justify-center gap-3 text-[10px] font-bold text-emerald-400/60 tracking-[0.3em] uppercase">
