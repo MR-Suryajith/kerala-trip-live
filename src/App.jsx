@@ -109,7 +109,7 @@ return (
         {/* Optional: Footer Watermark */}
         <footer className="mt-20 pb-10 text-center pointer-events-none opacity-20">
             <p className="text-[10px] font-black text-white uppercase tracking-[0.8em]">
-                Sanchaara Core v4.0
+                Sanchaara AI
             </p>
         </footer>
 

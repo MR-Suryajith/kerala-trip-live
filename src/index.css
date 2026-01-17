@@ -126,3 +126,35 @@
 .animate-shimmer {
   animation: shimmer 2s infinite;
 }
+@layer utilities {
+
+  /* Sweeps a light beam from left to right */
+  @keyframes shine {
+    100% {
+      left: 125%;
+    }
+  }
+
+  .animate-shine {
+    position: absolute;
+    animation: shine 1.2s ease-in-out infinite;
+  }
+
+  /* Moves the gradient background for a "living" look */
+  @keyframes gradient-xy {
+
+    0%,
+    100% {
+      background-position: 0% 50%;
+    }
+
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+
+  .animate-gradient-xy {
+    background-size: 200% 200%;
+    animation: gradient-xy 4s linear infinite;
+  }
+}

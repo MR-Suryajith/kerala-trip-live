@@ -31,8 +31,7 @@ export default function LoadingScreen() {
   return (
     <div className="fixed inset-0 z-[2000] flex flex-col items-center justify-center bg-[#020617] overflow-hidden">
       <p className="absolute bottom-24 text-[8px] font-black text-white/20 uppercase tracking-[0.4em] animate-pulse">
-  Neural processing may take a moment for high-precision itineraries
-</p>
+   Calibrating neural pathfinders...</p>
       
       {/* --- BACKGROUND WATERMARK (MINIMALIST & ELITE) --- */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none overflow-hidden">

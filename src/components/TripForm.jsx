@@ -1,6 +1,17 @@
 import { useState } from 'react';
 import { generateItinerary } from '../services/gemini';
-import { Sparkles, Map, Users, Wallet, Calendar, Navigation, Loader2 } from 'lucide-react';
+// Added Compass and CheckCircle2 to the imports
+import { 
+  Sparkles, 
+  Map, 
+  Users, 
+  Wallet, 
+  Calendar, 
+  Navigation, 
+  Loader2, 
+  Compass,
+  CheckCircle2
+} from 'lucide-react';
 
 const interestOptions = [
   'Beach', 'Backwater', 'Hill Station', 'Temple', 'Wildlife', 
@@ -69,7 +80,7 @@ export default function TripForm({ onItinerary, onLoading }) {
         className="relative bg-white/10 backdrop-blur-2xl border border-white/20 shadow-2xl rounded-[2rem] md:rounded-[3rem] p-5 md:p-12 text-white space-y-6 md:space-y-10 transition-all duration-500"
       >
         
-        {/* --- ROW 1: CORE ROUTE --- */}
+        {/* --- ROW 1: CORE ROUTE (RESPONSIVE) --- */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-8">
           <div className="flex flex-col gap-2">
             <label className="flex items-center gap-2 text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] ml-2 opacity-70 text-emerald-400">
@@ -103,7 +114,7 @@ export default function TripForm({ onItinerary, onLoading }) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-8">
           <div className="flex flex-col gap-2">
              <label className="flex items-center gap-2 text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] ml-2 opacity-70 text-blue-400">
-                <Calendar className="w-3 h-3" /> Journey Start
+                <Calendar className="w-3 h-3" /> Starting-Date
              </label>
              <input 
                type="date" 
@@ -116,7 +127,7 @@ export default function TripForm({ onItinerary, onLoading }) {
           </div>
           <div className="flex flex-col gap-2">
              <label className="flex items-center gap-2 text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] ml-2 opacity-70 text-blue-400">
-                <Calendar className="w-3 h-3" /> Journey End
+                <Calendar className="w-3 h-3" /> Ending-Date
              </label>
              <input 
                type="date" 
@@ -133,7 +144,7 @@ export default function TripForm({ onItinerary, onLoading }) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-8">
           <div className="flex flex-col gap-2">
             <label className="flex items-center gap-2 text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] ml-2 opacity-70">
-                <Users className="w-3 h-3" /> Explorers
+                <Users className="w-3 h-3" /> Number of People
             </label>
             <input
               type="number"
@@ -147,13 +158,13 @@ export default function TripForm({ onItinerary, onLoading }) {
           </div>
           <div className="flex flex-col gap-2">
             <label className="flex items-center gap-2 text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] ml-2 opacity-70">
-                <Wallet className="w-3 h-3" /> Budget (₹)
+                <Wallet className="w-3 h-3" /> Custom Budget (₹)
             </label>
             <input
               type="number"
               value={formData.budget}
               onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
-              placeholder="Total Limit"
+              placeholder="e.g. 50000"
               className="w-full bg-white/5 border border-white/10 rounded-xl md:rounded-2xl px-4 md:px-6 py-3 md:py-4 outline-none placeholder:text-white/20 text-sm md:text-lg font-mono"
               required
             />
@@ -183,29 +194,39 @@ export default function TripForm({ onItinerary, onLoading }) {
           </div>
         </div>
 
-        {/* --- NEURAL GLOW BUTTON --- */}
-        <div className="pt-2">
-            <button
-              type="submit"
-              disabled={loading}
-              className="group relative w-full overflow-hidden rounded-xl md:rounded-[2.5rem] p-[2px] transition-all duration-500 active:scale-95 disabled:opacity-50"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 via-blue-500 to-indigo-600 animate-gradient-xy"></div>
-              <div className="relative flex items-center justify-center gap-3 bg-slate-900/90 py-4 md:py-6 rounded-[calc(0.75rem)] md:rounded-[calc(1.5rem-2px)]">
-                  {loading ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin text-emerald-400" />
-                      <span className="font-black text-xs md:text-xl uppercase tracking-[0.2em] text-white">Mapping Odyssey...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Map className="w-4 h-4 md:w-6 md:h-6 text-emerald-400" />
-                      <span className="font-black text-xs md:text-xl uppercase tracking-[0.2em] text-white">Initiate Smart Journey</span>
-                      <Sparkles className="w-4 h-4 md:w-6 md:h-6 text-indigo-400" />
-                    </>
-                  )}
-              </div>
-            </button>
+        {/* --- UPGRADED NEURAL ODYSSEY BUTTON --- */}
+        <div className="pt-6 relative group">
+          <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 via-blue-500 to-indigo-600 rounded-[2rem] md:rounded-[3rem] blur-xl opacity-20 group-hover:opacity-60 transition duration-1000 group-hover:duration-200"></div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="group relative w-full overflow-hidden rounded-[1.5rem] md:rounded-[2.5rem] p-[2px] transition-all duration-500 active:scale-[0.97] disabled:opacity-50 disabled:active:scale-100"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 via-blue-500 to-indigo-600 animate-gradient-xy"></div>
+            
+            <div className="relative flex items-center justify-center gap-4 bg-slate-950/90 hover:bg-slate-900/40 transition-colors duration-500 py-5 md:py-7 rounded-[calc(1.5rem-2px)] md:rounded-[calc(2.5rem-2px)] overflow-hidden">
+              
+              <div className="absolute top-0 -inset-full h-full w-1/2 z-5 block transform -skew-x-12 bg-gradient-to-r from-transparent via-white/10 to-transparent group-hover:animate-shine" />
+
+              {loading ? (
+                <div className="flex items-center gap-3">
+                  <Loader2 className="w-6 h-6 animate-spin text-emerald-400" />
+                  <span className="font-black text-sm md:text-xl uppercase tracking-[0.4em] text-white">
+                    Mapping Odyssey...
+                  </span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-4">
+                  <Compass className="w-5 h-5 md:w-7 md:h-7 text-emerald-400 group-hover:rotate-90 transition-transform duration-700 ease-in-out" />
+                  <span className="font-black text-sm md:text-xl uppercase tracking-[0.3em] text-white drop-shadow-md">
+                    Initiate Smart Journey
+                  </span>
+                  <Sparkles className="w-5 h-5 md:w-7 md:h-7 text-indigo-400 group-hover:scale-125 group-hover:text-white transition-all duration-500 animate-pulse" />
+                </div>
+              )}
+            </div>
+          </button>
         </div>
 
       </form>
