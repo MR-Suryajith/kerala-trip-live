@@ -71,54 +71,40 @@ function App() {
     }
   };
 
-  return (
-    <div className="relative min-h-screen w-full overflow-x-hidden font-sans selection:bg-emerald-500/30">
+return (
+  <div className="relative min-h-screen w-full overflow-x-hidden font-sans selection:bg-emerald-500/30">
+    {loading && <LoadingScreen />}
+    <InteractiveBg />
+    
+    <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-black/40 via-transparent to-[#020617] z-[-1]"></div>
+
+    <ChatBot itinerary={itinerary} />
+
+    {/* Reduce padding-x for mobile (px-4) */}
+    <div className="py-8 md:py-12 px-4 md:px-8 relative z-10">
       
-      {/* 🚀 1. Global Loading Overlay (High Priority Z-Index) */}
-      {loading && <LoadingScreen />}
-
-      {/* 🎨 2. Interactive Neural Background (Bottom Layer) */}
-      <InteractiveBg />
-      
-      {/* 🌑 3. Deep Gradient Overlay (For Text Readability) */}
-      <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-black/40 via-transparent to-[#020617] z-[-1]"></div>
-
-      {/* 💬 4. AI Support ChatBot (Fixed position on all screens) */}
-      <ChatBot itinerary={itinerary} />
-
-      {/* --- Main UI Wrapper --- */}
-      <div className="py-12 px-4 relative z-10">
+      <header className="text-center mb-8 md:mb-12">
+        {/* Title: 3xl for mobile, 6xl for desktop */}
+        <h1 className="text-3xl sm:text-4xl md:text-6xl font-black text-white drop-shadow-2xl mb-3 tracking-tight">
+           SANCHAARA <span className="text-green-400 font-light italic">AI</span> 
+        </h1>
         
-        {/* --- Branding Header (Mobile Responsive Sizes) --- */}
-        <header className="text-center mb-12 animate-fade-in">
-          <h1 className="text-4xl md:text-6xl font-black text-white drop-shadow-2xl mb-3 tracking-tight">
-             SANCHAARA <span className="text-green-400 font-light italic">AI</span> 
-          </h1>
-          
-          <p className="text-[10px] md:text-sm text-white/70 font-medium tracking-[0.2em] md:tracking-[0.3em] uppercase px-4 max-w-2xl mx-auto leading-relaxed">
-              Seasonal Intelligence • Dynamic Logistics • AI Concierge
-          </p>
-          
-          <div className="h-[1px] w-24 bg-gradient-to-r from-transparent via-green-500 to-transparent mx-auto mt-6"></div>
-        </header>
+        {/* Subtitle: Smaller text and tighter tracking for mobile */}
+        <p className="text-[9px] md:text-sm text-white/70 font-medium tracking-[0.1em] md:tracking-[0.3em] uppercase px-2 max-w-2xl mx-auto leading-relaxed">
+            Seasonal Intelligence • Dynamic Logistics • AI Concierge
+        </p>
+        
+        <div className="h-[1px] w-16 md:w-24 bg-gradient-to-r from-transparent via-green-500 to-transparent mx-auto mt-6"></div>
+      </header>
 
-        {/* --- Dynamic Content Area --- */}
-        <main className="transition-all duration-700 ease-in-out">
-            {!itinerary ? (
-              // Phase 1-3: The Intelligent Search Form
-              <TripForm 
-                onItinerary={handleGenerate} 
-                onLoading={setLoading} 
-              />
-            ) : (
-              // Phase 3-5: The Smart Itinerary Visualization
-              <ItineraryDisplay 
-                itinerary={itinerary} 
-                onEdit={() => setItinerary(null)} 
-                onSwitchPlan={handleSwitchPlan} 
-              />
-            )}
-        </main>
+      <main className="transition-all duration-700 ease-in-out">
+          {!itinerary ? (
+            <TripForm onItinerary={handleGenerate} onLoading={setLoading} />
+          ) : (
+            <ItineraryDisplay itinerary={itinerary} onEdit={() => setItinerary(null)} onSwitchPlan={handleSwitchPlan} />
+          )}
+      </main>
+        
 
         {/* Optional: Footer Watermark */}
         <footer className="mt-20 pb-10 text-center pointer-events-none opacity-20">
