@@ -6,7 +6,10 @@ const GENERAL_SUGGESTIONS = [
   "🛡️ Is India safe for solo travelers?",
   "🚌 How to get public bus?",
   "💎 Hidden gems in India?",
-  "☔ Best places during Monsoon?"
+  "☔ Best places during Monsoon?",
+  "🐅 Where are the best tiger safari spots?",
+  "🎉 Upcoming festivals in India?",
+  "🏖️ Goa or Kerala for a beach holiday?"
 ];
 
 const ITINERARY_SUGGESTIONS = [
@@ -14,7 +17,9 @@ const ITINERARY_SUGGESTIONS = [
   "☕ Good cafes near these spots?",
   "👗 What should I wear today?",
   "🚗 Average taxi rates here?",
-  "🛍️ Best places for shopping?"
+  "🛍️ Best places for shopping?",
+  "🍽️ Top restaurants nearby?",
+  "🌅 Good spots for sunset photos?",
 ];
 
 export default function ChatBot({ itinerary }) {
