@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { SendHorizontal } from 'lucide-react';
+import { SendHorizontal, MessageCircle, X, Sparkles, Loader2 } from 'lucide-react';
 
-// Suggestions for the Home/Form Interface
 const GENERAL_SUGGESTIONS = [
   "🥘 Must-try local food?",
   "🛡️ Is India safe for solo travelers?",
@@ -10,7 +9,6 @@ const GENERAL_SUGGESTIONS = [
   "☔ Best places during Monsoon?"
 ];
 
-// Suggestions for the Itinerary Interface
 const ITINERARY_SUGGESTIONS = [
   "⏰ Best time to start Day 1?",
   "☕ Good cafes near these spots?",
@@ -28,7 +26,6 @@ export default function ChatBot({ itinerary }) {
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef(null);
 
-  // --- DYNAMIC URL LOGIC ---
   const API_URL = window.location.hostname === 'localhost' 
     ? 'http://localhost:5000/api/chat' 
     : 'https://sanchaara-ai.onrender.com/api/chat';
@@ -45,17 +42,12 @@ export default function ChatBot({ itinerary }) {
     const messageToSend = suggestedText || input;
     if (!messageToSend.trim() || loading) return;
 
-    // Prepare history BEFORE adding the new message (must skip initial greeting)
-    const chatHistory = messages
-      .slice(1)
-      .map(m => ({
-        role: m.role === 'user' ? 'user' : 'model',
-        parts: [{ text: m.text }]
-      }));
+    const chatHistory = messages.slice(1).map(m => ({
+      role: m.role === 'user' ? 'user' : 'model',
+      parts: [{ text: m.text }]
+    }));
 
-    // Add user message to local UI
-    const newUserMsg = { role: "user", text: messageToSend };
-    setMessages(prev => [...prev, newUserMsg]);
+    setMessages(prev => [...prev, { role: "user", text: messageToSend }]);
     setInput("");
     setLoading(true);
 
@@ -72,19 +64,13 @@ export default function ChatBot({ itinerary }) {
         body: JSON.stringify({ 
           message: messageToSend,
           history: chatHistory, 
-          itineraryContext: itineraryContext 
+          itineraryContext 
         }),
       });
 
       const data = await response.json();
-
-      if (data.reply) {
-        setMessages(prev => [...prev, { role: "bot", text: data.reply }]);
-      } else {
-        setMessages(prev => [...prev, { role: "bot", text: "I'm experiencing a bit of traffic. Try again in a moment! 🌴" }]);
-      }
+      setMessages(prev => [...prev, { role: "bot", text: data.reply || "I'm refreshing my data. Try again! 🌴" }]);
     } catch (error) {
-      console.error("Chat Error:", error);
       setMessages(prev => [...prev, { role: "bot", text: "Connection lost. Please check your internet! 🛶" }]);
     } finally {
       setLoading(false);
@@ -92,82 +78,91 @@ export default function ChatBot({ itinerary }) {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-[1000] font-sans">
-      {/* Toggle Button */}
-      <button 
-        onClick={() => setIsOpen(!isOpen)}
-        className="bg-green-500 hover:bg-green-600 text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center text-2xl transition-all active:scale-90 border-2 border-white/20"
-      >
-        {isOpen ? "✕" : "💬"}
-      </button>
+    <div className="fixed bottom-6 right-6 z-[5000] font-sans">
+      {/* --- DYNAMIC TOGGLE BUTTON --- */}
+      <div className="relative group">
+        <div className="absolute inset-0 bg-emerald-500 rounded-full blur-xl opacity-40 group-hover:opacity-70 animate-pulse transition-opacity"></div>
+        <button 
+          onClick={() => setIsOpen(!isOpen)}
+          className={`relative w-16 h-16 rounded-full flex items-center justify-center transition-all duration-500 shadow-2xl active:scale-90 border border-white/20 ${
+            isOpen ? 'bg-slate-900 rotate-90' : 'bg-gradient-to-tr from-emerald-600 to-teal-400'
+          }`}
+        >
+          {isOpen ? <X className="text-white w-7 h-7" /> : <MessageCircle className="text-white w-8 h-8" />}
+          {!isOpen && <Sparkles className="absolute top-3 right-3 w-3 h-3 text-yellow-300 animate-pulse" />}
+        </button>
+      </div>
 
-      {/* Chat Window */}
+      {/* --- CHAT WINDOW --- */}
       {isOpen && (
-        <div className="absolute bottom-16 right-0 w-80 md:w-96 h-[480px] bg-slate-900/95 backdrop-blur-2xl border border-white/20 rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4">
+        <div className="absolute bottom-20 right-0 w-[85vw] md:w-96 h-[520px] bg-slate-950/95 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5">
           
           {/* Header */}
-          <div className="bg-gradient-to-r from-green-600 to-blue-600 p-4 text-white">
-            <h4 className="font-black text-sm uppercase tracking-widest text-white">
-              {itinerary ? "Trip Concierge" : "India Explorer"}
+          <div className="bg-gradient-to-r from-emerald-600 to-blue-600 p-6 text-white border-b border-white/5">
+            <h4 className="font-black text-sm uppercase tracking-[0.3em] flex items-center gap-2">
+               <div className="w-2 h-2 bg-green-400 rounded-full animate-ping"></div>
+               {itinerary ? "Trip Concierge" : "India Explorer"}
             </h4>
-            <p className="text-[9px] opacity-70 italic text-white/80">
-              {itinerary ? "Personalized support for your trip" : "General Trip guide"}
-            </p>
+            <p className="text-[10px] opacity-60 mt-1 font-medium tracking-widest">Powered by Sanchaara Neural Core</p>
           </div>
 
-          {/* Messages area */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar bg-black/20">
+          {/* Message Area */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
             {messages.map((m, i) => (
               <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                {m.text && (
-                  <div className={`max-w-[85%] p-3 rounded-2xl text-[12px] leading-relaxed shadow-sm ${
-                    m.role === 'user' 
-                    ? 'bg-blue-600 text-white rounded-br-none' 
-                    : 'bg-white/10 text-white border border-white/10 rounded-tl-none'
-                  }`}>
-                    {m.text}
-                  </div>
-                )}
+                <div className={`max-w-[85%] p-4 rounded-[1.5rem] text-[13px] leading-relaxed shadow-xl border ${
+                  m.role === 'user' 
+                  ? 'bg-blue-600 border-blue-400/50 text-white rounded-br-none' 
+                  : 'bg-white/5 border-white/10 text-white/90 rounded-tl-none backdrop-blur-md'
+                }`}>
+                  {m.text}
+                </div>
               </div>
             ))}
-            {loading && <div className="text-white/30 text-[10px] animate-pulse ml-2 font-bold uppercase tracking-tighter">AI Thinking...</div>}
+            {loading && (
+              <div className="flex items-center gap-2 text-emerald-400/50 text-[10px] font-black uppercase tracking-widest ml-2">
+                <Loader2 className="w-3 h-3 animate-spin" /> Neural Link Active...
+              </div>
+            )}
             <div ref={scrollRef} />
           </div>
 
-          {/* Dynamic Suggestion Chips */}
-          <div className="px-3 py-2 flex gap-2 overflow-x-auto no-scrollbar border-t border-white/5 bg-white/5">
+          {/* Suggestion Chips */}
+          <div className="px-4 py-3 flex gap-2 overflow-x-auto no-scrollbar border-t border-white/5 bg-black/20">
             {currentSuggestions.map((s, idx) => (
               <button
                 key={idx}
                 onClick={() => handleSend(s)}
-                className="whitespace-nowrap bg-white/10 hover:bg-white/20 border border-white/10 px-3 py-1.5 rounded-full text-[10px] font-bold text-white/90 transition-all active:scale-95"
+                className="whitespace-nowrap bg-white/5 hover:bg-emerald-500/20 border border-white/10 px-4 py-2 rounded-full text-[10px] font-bold text-white/70 transition-all hover:text-emerald-400 active:scale-95"
               >
                 {s}
               </button>
             ))}
           </div>
 
-          {/* Input Area */}
-          <div className="p-3 bg-slate-900 border-t border-white/10 flex gap-2">
+          {/* Input Bar */}
+          <div className="p-4 bg-slate-900/80 border-t border-white/10 flex gap-3 items-center">
             <input 
               type="text" 
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-              placeholder={itinerary ? "Ask about your trip..." : "Ask a general question..."}
-              className="flex-1 bg-white/5 border border-white/20 rounded-xl px-4 py-2 text-white text-xs outline-none focus:border-green-500 transition-all placeholder:text-white/20"
+              placeholder="Ask Sanchaara..."
+              className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-5 py-3 text-white text-xs outline-none focus:border-emerald-500/50 transition-all placeholder:text-white/20"
             />
-<button 
-  onClick={() => handleSend()}
-  disabled={loading}
-  className="bg-green-600 hover:bg-green-500 disabled:bg-slate-700 text-white w-12 h-12 rounded-2xl flex items-center justify-center transition-all active:scale-90 shadow-xl disabled:opacity-50"
->
-  {loading ? (
-    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-  ) : (
-    <SendHorizontal className="w-6 h-6" />
-  )}
-</button>
+            <button 
+              onClick={() => handleSend()}
+              disabled={loading}
+              className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-lg active:scale-90 border border-white/10 ${
+                loading ? 'bg-slate-800' : 'bg-emerald-600 hover:bg-emerald-500'
+              }`}
+            >
+              {loading ? (
+                <Loader2 className="w-5 h-5 text-emerald-400 animate-spin" />
+              ) : (
+                <SendHorizontal className="text-white w-5 h-5" />
+              )}
+            </button>
           </div>
         </div>
       )}
