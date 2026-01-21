@@ -90,11 +90,7 @@ export default function CrowdAnalyzer({ analysis }) {
           </div>
         </div>
       )}
-
-      {/* Background Decorative Element */}
-      <div className="absolute -right-4 -bottom-4 text-white/[0.03] text-6xl font-black pointer-events-none select-none italic">
-        LIVE
-      </div>
+      
     </div>
   );
 }
