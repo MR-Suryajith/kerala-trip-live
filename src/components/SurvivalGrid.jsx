@@ -23,15 +23,13 @@ export default function SurvivalGrid({ lat, lng }) {
     setLoading(true);
     setActiveTab(type);
     const results = await fetchNearbyEssentials(lat, lng, type);
-    setData(results.slice(0, 3)); 
+    setData(results.slice(0, 3));
     setLoading(false);
   };
 
   return (
     <div className="mt-8 bg-white/5 border border-white/10 rounded-[2rem] p-5 md:p-8 backdrop-blur-xl relative overflow-hidden group transition-all hover:bg-white/[0.07]">
-      
-      {/* Background Watermark */}
-      <ShieldAlert className="absolute -right-4 -bottom-4 w-32 h-32 text-white/[0.03] pointer-events-none group-hover:rotate-12 transition-transform duration-700" />
+
 
       <h5 className="text-[10px] font-black text-blue-400 uppercase tracking-[0.3em] mb-6 flex items-center gap-2">
         <ShieldAlert className="w-3 h-3 animate-pulse" /> Safety & Utility Grid
@@ -44,8 +42,8 @@ export default function SurvivalGrid({ lat, lng }) {
             key={cat.id}
             onClick={() => getNearby(cat.id)}
             className={`flex flex-col items-center gap-2 py-4 rounded-2xl border transition-all active:scale-95 ${
-              activeTab === cat.id 
-                ? 'bg-blue-600 border-blue-400 shadow-[0_0_20px_rgba(37,99,235,0.4)]' 
+              activeTab === cat.id
+                ? 'bg-blue-600 border-blue-400 shadow-[0_0_20px_rgba(37,99,235,0.4)]'
                 : 'bg-white/5 border-white/5 hover:bg-white/10'
             }`}
           >
@@ -62,14 +60,14 @@ export default function SurvivalGrid({ lat, lng }) {
             Scanning Satellite Data...
           </div>
         )}
-        
+
         {!loading && data.map((item, i) => (
           <div key={i} className="flex justify-between items-center bg-slate-900/50 backdrop-blur-md p-4 rounded-2xl border border-white/5 animate-fade-in group/item hover:border-emerald-500/30 transition-all">
             <div className="min-w-0 flex-1">
                 <p className="text-[11px] font-bold text-white truncate pr-4 uppercase tracking-tighter">{item.name}</p>
                 <p className="text-[8px] text-white/30 font-bold uppercase mt-1">Within 2.0 KM Radius</p>
             </div>
-            <a 
+            <a
               href={`https://www.google.com/maps/dir/?api=1&destination=${item.lat},${item.lon}`}
               target="_blank"
               rel="noreferrer"
@@ -87,9 +85,7 @@ export default function SurvivalGrid({ lat, lng }) {
         )}
       </div>
 
-      <p className="mt-6 text-[8px] text-center font-bold text-white/10 uppercase tracking-[0.3em]">
-        Verified by OpenStreetMap Data ✓
-      </p>
+
     </div>
   );
 }

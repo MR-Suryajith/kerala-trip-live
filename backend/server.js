@@ -101,7 +101,38 @@ const cleanAndParseJSON = (text) => {
       throw new Error("No JSON structure found in response");
 
     const jsonString = text.substring(start, end);
-    return JSON.parse(jsonString);
+    const parsedData = JSON.parse(jsonString);
+
+    // --- HARD FORMAT MAPPING ---
+    // Gemini abuses 'seasonalNote', so we forced it to output 'weatherAndFestivalAdvice'
+    // Now we map it back so the frontend ItineraryDisplay.jsx doesn't break
+    if (parsedData.weatherAndFestivalAdvice) {
+        parsedData.seasonalNote = parsedData.weatherAndFestivalAdvice;
+        delete parsedData.weatherAndFestivalAdvice;
+    } else if (!parsedData.seasonalNote) {
+        parsedData.seasonalNote = "Pleasant weather expected. Pack comfortable clothing suitable for exploring.";
+    }
+
+    // --- AI HALLUCINATION GUARD: Format Isolation ---
+    // Gemini often ignores negative constraints and leaks financial info into seasonalNote.
+    if (parsedData.seasonalNote) {
+       const note = parsedData.seasonalNote.toLowerCase();
+       const hasFinancialTerm = note.includes("₹") || note.includes("rs") || note.includes("budget") || note.includes("cost") || note.includes("price") || note.includes("expensive");
+
+       if (hasFinancialTerm) {
+           console.log("🛡️ Intercepted AI Leak: Relocating budget text from seasonalNote.");
+           // Push the leaked text into the budgetAnalysis.breakdown as an AI Alert
+           if (!parsedData.budgetAnalysis) parsedData.budgetAnalysis = { breakdown: {} };
+           if (!parsedData.budgetAnalysis.breakdown) parsedData.budgetAnalysis.breakdown = {};
+
+           parsedData.budgetAnalysis.breakdown["Financial Advisor Note"] = parsedData.seasonalNote;
+
+           // Cleanse the seasonalNote
+           parsedData.seasonalNote = "Pleasant weather expected. Pack comfortable clothing suitable for exploring.";
+       }
+    }
+
+    return parsedData;
   } catch (error) {
     console.error("❌ JSON Extraction Failed. Raw Output:", text);
     throw new Error(
@@ -115,6 +146,7 @@ app.post("/api/generate-itinerary", async (req, res) => {
   try {
     const { formData } = req.body;
     const destination = formData.destination ? formData.destination.trim() : "";
+    const transportMode = formData.transportMode ? formData.transportMode.trim() : "Optimal";
 
     // STEP 1: GEOGRAPHICAL VALIDATION (INDIA GEOFENCE)
     console.log(`🔍 Verifying destination: ${destination}`);
@@ -170,26 +202,28 @@ app.post("/api/generate-itinerary", async (req, res) => {
     } to ${destination}, India.
     Travelers: ${formData.travelers} | Total Budget Limit: ₹${
       formData.budget
-    } | Interests: ${formData.interests.join(", ")} ${modificationNote}
+    } | Preferred Global Transport Mode: ${transportMode} | Interests: ${formData.interests.join(", ")} ${modificationNote}
 
     STRICT OUTPUT RULES:
-    1. localPulse: Identify real festivals/events in ${destination} on these dates. MUST be an array of simple strings.
-    2. budgetAnalysis: Split ₹${
-      formData.budget
-    } logically. Total and perPerson must be simple strings (e.g., "₹50,000").
-    3. weather icon: Use ONLY one real emoji (☀️, 🌧️, ☁️, 🌫️, 🌩️).
-    4. Places: Include rank(1-10), time, trafficStatus(Low/Moderate/High), distance/time from previous stop, and alternativePlace.
-    5. DATA PRECISION: Ensure 'coordinates' are as accurate as possible for the specific landmark.
+    1. INITIAL TRANSIT (${formData.origin} to nearest hub for ${destination}): YOU MUST use the preferred mode "${transportMode}" if possible.
+       - The 'duration' MUST be realistic for this specific mode (e.g. Flight is ~2-4 hrs, Train might be 20-40+ hrs depending on distance).
+       - If the user's budget (₹${formData.budget}) is too low for this mode, STILL GENERATE the plan using this mode.
+    2. BUDGET WARNINGS: If the trip is hilariously underbudgeted (e.g., ₹100 for a Flight to Goa), you MUST put your funny warning inside \`budgetAnalysis.breakdown.FinancialWarning\`. You are FORBIDDEN from putting budget warnings in \`weatherAndFestivalAdvice\`.
+    3. LOCAL TRANSIT (between daily places): Do NOT show flight times. Show ONLY ground travel (distance + driving/walking time).
+    4. localPulse: Identify real festivals/events in ${destination} on these dates. MUST be an array of simple strings.
+    5. budgetAnalysis: Split ₹${formData.budget} logically. Total and perPerson must be simple strings (e.g., "₹50,000").
+    6. weather icon: Use ONLY one real emoji (☀️, 🌧️, ☁️, 🌫️, 🌩️).
+    7. DATA PRECISION: Ensure 'coordinates' are as accurate as possible for the specific landmark.
 
     JSON FORMAT (MANDATORY):
     {
       "localPulse": ["..."],
-      "budgetAnalysis": { "total": "₹...", "perPerson": "₹...", "breakdown": { "stay": "₹...", "food": "₹...", "transport": "₹...", "sightseeing": "₹..." } },
+      "budgetAnalysis": { "total": "₹...", "perPerson": "₹...", "breakdown": { "stay": "₹...", "food": "₹...", "transport": "₹...", "FinancialWarning": "Put your funny low-budget explanation here if needed!" } },
       "initialLogistics": { "from": "${
         formData.origin
       }", "to": "Nearest Hub", "mode": "...", "distance": "km", "duration": "..." },
       "arrivalLogistics": { "from": "Hub", "to": "First Spot", "distance": "km", "duration": "..." },
-      "seasonalNote": "Advice for ${formData.startDate}",
+      "weatherAndFestivalAdvice": "Describe ONLY the weather, temperature, and clothing to pack for ${formData.startDate}. ABSOLUTELY NO FINANCIAL OR BUDGET TALK.",
       "days": [{
         "dayNumber": 1, "date": "...", "cityLocation": "...",
         "weather": { "temp": "...", "condition": "...", "icon": "emoji", "advice": "..." },
@@ -241,10 +275,6 @@ app.post("/api/chat", async (req, res) => {
       )}. Answer accordingly.`;
     }
 
-    const model = getActiveModel("gemini-2.5-flash-lite", {
-      systemInstruction: systemInstruction,
-    });
-
     // FILTER & RESTRUCTURE HISTORY (Gemini expects: user -> model -> user)
     let cleanHistory = (history || []).filter(
       (item) => item.parts && item.parts[0] && item.parts[0].text.trim() !== ""
@@ -262,12 +292,32 @@ app.post("/api/chat", async (req, res) => {
       cleanHistory.pop();
     }
 
-    const chat = model.startChat({ history: cleanHistory });
-    const result = await chat.sendMessage(message);
-    const chatResponse = await result.response;
+    // Retry with key rotation for chat endpoint
+    let lastError;
+    for (let attempt = 0; attempt < apiKeys.length; attempt++) {
+      try {
+        const model = getActiveModel("gemini-2.5-flash-lite", {
+          systemInstruction: systemInstruction,
+        });
+        const chat = model.startChat({ history: cleanHistory });
+        const result = await chat.sendMessage(message);
+        const chatResponse = await result.response;
 
-    console.log("🤖 Chat Response Sent.");
-    res.json({ reply: chatResponse.text() });
+        console.log("🤖 Chat Response Sent.");
+        return res.json({ reply: chatResponse.text() });
+      } catch (err) {
+        lastError = err;
+        const isQuotaError = err.message.includes("429") || err.message.includes("quota");
+        if (isQuotaError && apiKeys.length > 1) {
+          const prevIndex = currentKeyIndex;
+          currentKeyIndex = (currentKeyIndex + 1) % apiKeys.length;
+          console.log(`⚠️ Chat: Quota on Key ${prevIndex + 1}. Rotating to Key ${currentKeyIndex + 1}...`);
+        } else {
+          throw err;
+        }
+      }
+    }
+    throw lastError;
   } catch (error) {
     console.error("❌ Chatbot Error:", error.message);
     res.status(200).json({
@@ -279,11 +329,27 @@ app.post("/api/chat", async (req, res) => {
 
 // --- APP LISTENER & PORT CONFIG (Render Optimized) ---
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, "0.0.0.0", () => {
+const server = app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Sanchaara Server live on http://localhost:${PORT}`);
   console.log(
     `🔑 Key Status: ${apiKeys.length > 0 ? "CONFIGURED (" + apiKeys.length + " keys active)" : "MISSING"}`
   );
+  console.log(`💡 Server PID: ${process.pid} — Press Ctrl+C to stop.`);
 });
 
-//test
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`❌ Port ${PORT} is already in use! Kill the other process first.`);
+  } else {
+    console.error(`❌ Server error:`, err);
+  }
+  process.exit(1);
+});
+
+// Catch silent crashes
+process.on('uncaughtException', (err) => {
+  console.error('💥 Uncaught Exception:', err);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('💥 Unhandled Rejection:', reason);
+});
