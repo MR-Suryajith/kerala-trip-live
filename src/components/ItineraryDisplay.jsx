@@ -1,3 +1,12 @@
+/**
+ * ItineraryDisplay.jsx
+ *
+ * @description  Renders the complete AI-generated travel itinerary with
+ *               interactive maps, crowd analysis, weather data, budget
+ *               breakdown, and Plan B swap functionality. Supports PDF
+ *               export and WhatsApp sharing.
+ */
+
 import React, { useState } from 'react';
 import MapComponent from './MapComponent';
 import jsPDF from 'jspdf';
@@ -172,7 +181,7 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
             </div>
           </div>
           <div className="lg:col-span-2 h-[300px] md:h-[350px]">
-            <MapComponent origin={itinerary.initialLogistics.from} destination={itinerary.initialLogistics.to} isFlight={true} />
+            <MapComponent origin={itinerary.initialLogistics.from} destination={itinerary.initialLogistics.to} isFlight={itinerary.initialLogistics.mode?.toLowerCase().includes('flight')} />
           </div>
         </section>
 

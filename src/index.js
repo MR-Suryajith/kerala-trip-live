@@ -1,3 +1,10 @@
+/**
+ * index.js
+ *
+ * @description  Application entry point. Mounts the root React component
+ *               into the DOM using React 18's createRoot API.
+ */
+
 import React from "react";
 import ReactDOM from "react-dom/client";
 import "./index.css";

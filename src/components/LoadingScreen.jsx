@@ -1,15 +1,24 @@
+/**
+ * LoadingScreen.jsx
+ *
+ * @description  Full-screen animated loading overlay. Displays morphing
+ *               travel mode icons, status messages, and a scanning ring
+ *               animation while the AI generates the itinerary.
+ */
+
 import React, { useState, useEffect } from 'react';
+import { Plane, TrainFront, Car, Bike, Ship } from 'lucide-react';
 
 const TRAVEL_MODES = [
-  { icon: "✈️", label: "Departure Scheduled" },
-  { icon: "🚂", label: "Routing Rails" },
-  { icon: "🚗", label: "Mapping Routes" },
-  { icon: "🏍️", label: "Exploring Terrains" },
-  { icon: "🛶", label: "Navigating Backwaters" }
+  { icon: <Plane className="w-14 h-14 text-blue-400" />, label: "Departure Scheduled" },
+  { icon: <TrainFront className="w-14 h-14 text-emerald-400" />, label: "Routing Rails" },
+  { icon: <Car className="w-14 h-14 text-amber-400" />, label: "Mapping Routes" },
+  { icon: <Bike className="w-14 h-14 text-purple-400" />, label: "Exploring Terrains" },
+  { icon: <Ship className="w-14 h-14 text-teal-400" />, label: "Navigating Backwaters" }
 ];
 
 const STATUS_MESSAGES = [
-  "Synchronizing with Sanchaara-AI...",   
+  "Synchronizing with Sanchaara-AI...",
   "Analyzing Geographical Data...",
   "Evaluating Local Weather...",
   "Curating Cultural Insights...",
@@ -26,13 +35,13 @@ export default function LoadingScreen() {
     }, 2200);
     return () => clearInterval(interval);
   }, []);
-  
+
 
   return (
     <div className="fixed inset-0 z-[2000] flex flex-col items-center justify-center bg-[#020617] overflow-hidden">
       <p className="absolute bottom-24 text-[8px] font-black text-white/20 uppercase tracking-[0.4em] animate-pulse">
    Calibrating neural pathfinders...</p>
-      
+
       {/* --- BACKGROUND WATERMARK (MINIMALIST & ELITE) --- */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none overflow-hidden">
         <h1 className="text-[10vw] font-black text-white/[0.05] tracking-[0.2em] whitespace-nowrap animate-pulse">
@@ -42,23 +51,23 @@ export default function LoadingScreen() {
 
       {/* --- CENTRAL STAGE --- */}
       <div className="relative flex items-center justify-center">
-        
+
         {/* Animated Aura */}
         <div className="absolute w-80 h-80 bg-blue-600/10 rounded-full blur-[100px] animate-pulse"></div>
         <div className="absolute w-60 h-60 bg-emerald-500/10 rounded-full blur-[80px] animate-pulse [animation-delay:1s]"></div>
 
         {/* The Orbital Path */}
         <div className="absolute w-72 h-72 border border-white/[0.05] rounded-full"></div>
-        
+
         {/* The Scanning Ring */}
         <div className="absolute w-64 h-64 border-t-2 border-l-2 border-emerald-500/30 rounded-full animate-spin"></div>
 
         {/* Morphing Icon Container */}
         <div className="relative z-10 flex flex-col items-center justify-center bg-white/5 backdrop-blur-2xl border border-white/10 w-44 h-44 rounded-[3rem] shadow-[0_0_50px_rgba(0,0,0,0.5)]">
-          <span className="text-6xl filter drop-shadow-[0_0_15px_rgba(255,255,255,0.4)] animate-bounce">
+          <div className="filter drop-shadow-[0_0_15px_rgba(255,255,255,0.4)] animate-bounce">
             {TRAVEL_MODES[index].icon}
-          </span>
-          
+          </div>
+
           {/* Subtle Brand Tag below icon */}
           <div className="absolute bottom-4 flex items-center gap-1.5">
             <div className="w-1 h-1 bg-emerald-400 rounded-full animate-ping"></div>
@@ -87,11 +96,11 @@ export default function LoadingScreen() {
 
       {/* --- PROGRESS BAR --- */}
       <div className="mt-12 w-48 h-[2px] bg-white/5 rounded-full overflow-hidden">
-        <div 
+        <div
            className="h-full bg-gradient-to-r from-transparent via-emerald-400 to-transparent transition-all duration-1000 ease-in-out shadow-[0_0_10px_#10b981]"
-           style={{ 
+           style={{
              width: '100%',
-             transform: `translateX(${(index - TRAVEL_MODES.length / 2) * 20}%)` 
+             transform: `translateX(${(index - TRAVEL_MODES.length / 2) * 20}%)`
            }}
         ></div>
       </div>
@@ -101,7 +110,7 @@ export default function LoadingScreen() {
         <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.8em] ml-[0.8em]">
           SANCHAARA AI
         </p>
-        
+
         {/* Render "Cold Start" Warning only if needed */}
         <p className="text-white/10 text-[8px] font-medium uppercase tracking-widest max-w-[200px] text-center leading-relaxed">
             Establishing secure connection with <br/> neural travel servers...
@@ -111,5 +120,3 @@ export default function LoadingScreen() {
     </div>
   );
 }
-
-//test

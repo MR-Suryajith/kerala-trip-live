@@ -1,4 +1,12 @@
-// 1. Detect environment automatically
+/**
+ * gemini.js — Gemini API Service Layer
+ *
+ * @description  Abstracts communication with the Sanchaara AI backend.
+ *               Automatically detects the environment (local vs. production)
+ *               and routes API requests accordingly.
+ */
+
+// Detect environment: use localhost in development, Render URL in production
 const API_BASE_URL =
   window.location.hostname === "localhost"
     ? "http://localhost:5000"

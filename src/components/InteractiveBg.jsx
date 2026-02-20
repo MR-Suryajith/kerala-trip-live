@@ -1,3 +1,11 @@
+/**
+ * InteractiveBg.jsx
+ *
+ * @description  Animated particle background using tsParticles. Creates an
+ *               interactive neural-network aesthetic with grab interactivity
+ *               on mouse hover.
+ */
+
 import { useEffect, useMemo, useState } from "react";
 import Particles, { initParticlesEngine } from "@tsparticles/react";
 import { loadSlim } from "@tsparticles/slim";

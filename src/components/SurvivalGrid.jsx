@@ -1,3 +1,11 @@
+/**
+ * SurvivalGrid.jsx
+ *
+ * @description  Safety and utility grid component. Queries the OpenStreetMap
+ *               Overpass API for nearby hospitals, ATMs, restrooms, and cafes
+ *               within a 2km radius. Provides direct Google Maps navigation.
+ */
+
 import React, { useState } from 'react';
 import { ShieldAlert, Landmark, PlusSquare, Coffee, Bath, Navigation } from 'lucide-react';
 import { fetchNearbyEssentials } from '../services/overpass';

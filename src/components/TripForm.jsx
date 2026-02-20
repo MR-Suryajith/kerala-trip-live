@@ -1,3 +1,12 @@
+/**
+ * TripForm.jsx
+ *
+ * @description  Multi-step trip planning form. Collects user preferences
+ *               including origin, destination, dates, budget, transport mode,
+ *               and interests. Submits data to the Gemini API for itinerary
+ *               generation.
+ */
+
 import { useState } from 'react';
 import { generateItinerary } from '../services/gemini';
 // Added Compass and CheckCircle2 to the imports

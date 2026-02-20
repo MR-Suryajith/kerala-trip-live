@@ -1,3 +1,11 @@
+/**
+ * CrowdAnalyzer.jsx
+ *
+ * @description  Visual crowd density forecast component. Displays an animated
+ *               heat bar, peak hours, wait times, and high-influx warnings
+ *               for each tourist location.
+ */
+
 import React from 'react';
 import { Users, Timer, TrendingUp, TrendingDown, AlertTriangle } from 'lucide-react';
 
@@ -20,7 +28,7 @@ export default function CrowdAnalyzer({ analysis }) {
 
   return (
     <div className="mt-6 bg-white/5 border border-white/10 rounded-[2rem] p-6 backdrop-blur-md shadow-2xl relative overflow-hidden group">
-      
+
       {/* 1. Header with Status Badge */}
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-3">
@@ -38,7 +46,7 @@ export default function CrowdAnalyzer({ analysis }) {
 
       {/* 2. The Visual Heat Bar (Heatmap style) */}
       <div className="relative h-5 bg-black/40 rounded-2xl overflow-hidden mb-6 border border-white/5 p-1 shadow-inner">
-        <div 
+        <div
           className={`h-full rounded-xl bg-gradient-to-r ${getIntensityColor(analysis.occupancy)} transition-all duration-[2500ms] ease-out shadow-[0_0_20px_rgba(0,0,0,0.5)] relative`}
           style={{ width: `${analysis.occupancy}%` }}
         >
@@ -90,7 +98,7 @@ export default function CrowdAnalyzer({ analysis }) {
           </div>
         </div>
       )}
-      
+
     </div>
   );
 }

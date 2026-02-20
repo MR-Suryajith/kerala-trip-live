@@ -1,10 +1,28 @@
+/**
+ * MapComponent.jsx
+ *
+ * @description  Embedded Google Maps component with dark-mode styling.
+ *               Displays route directions between origin and destination
+ *               with a glassmorphism UI overlay and external navigation link.
+ */
+
 import React from 'react';
 import { Map as MapIcon, ExternalLink, Navigation2 } from 'lucide-react';
 
-export default function MapComponent({ origin, destination, isFlight = false }) {
+export default function MapComponent({ origin, destination, isFlight = false, mode = '' }) {
   const start = encodeURIComponent(origin);
   const end = encodeURIComponent(destination);
-  
+
+  // Determine the icon to display based on transport mode
+  const getModeIcon = () => {
+    const m = mode.toLowerCase();
+    if (m.includes('flight')) return '✈️';
+    if (m.includes('train'))  return '🚆';
+    if (m.includes('bus'))    return '🚌';
+    if (m.includes('car'))    return '🚗';
+    return '🚗';
+  };
+
   // Free Google Maps Embed URL
   const zoom = isFlight ? 5 : 12;
   const mapUrl = `https://maps.google.com/maps?saddr=${start}&daddr=${end}&output=embed&z=${zoom}`;
@@ -14,18 +32,18 @@ export default function MapComponent({ origin, destination, isFlight = false }) 
 
   return (
     <div className="w-full mt-3 group relative">
-      
+
       {/* --- TOP MAP INFO BAR --- */}
       <div className="absolute top-3 left-3 right-3 z-20 flex justify-between items-center pointer-events-none">
         <div className="bg-slate-900/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 flex items-center gap-2 shadow-xl translate-y-[-5px] opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
            <MapIcon className="w-3 h-3 text-emerald-400" />
-           
+           <span className="text-[9px] font-black text-white/70 uppercase tracking-widest">{mode ? `${getModeIcon()} ${mode}` : 'Route'}</span>
         </div>
-        
+
         {/* OPEN IN GOOGLE MAPS BUTTON (Interactive) */}
-        <a 
-          href={externalMapUrl} 
-          target="_blank" 
+        <a
+          href={externalMapUrl}
+          target="_blank"
           rel="noopener noreferrer"
           className="pointer-events-auto bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-xl border border-white/20 shadow-2xl translate-y-[-5px] opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 delay-75 flex items-center gap-2"
           title="Open in Google Maps"
@@ -38,10 +56,10 @@ export default function MapComponent({ origin, destination, isFlight = false }) 
 
       {/* --- THE MAP FRAME --- */}
       <div className="w-full h-80 rounded-[2.5rem] overflow-hidden border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] relative bg-slate-900">
-        
+
         {/* Glassmorphism Inner Glow */}
         <div className="absolute inset-0 pointer-events-none border-[10px] border-white/5 rounded-[2.5rem] z-10 shadow-inner"></div>
-        
+
         <iframe
           title={`${origin} to ${destination}`}
           width="100%"
@@ -58,7 +76,7 @@ export default function MapComponent({ origin, destination, isFlight = false }) 
         <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-slate-900/80 to-transparent pointer-events-none z-10"></div>
       </div>
 
-  
+
 
     </div>
   );

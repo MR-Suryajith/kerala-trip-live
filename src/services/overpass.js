@@ -1,6 +1,9 @@
 /**
- * Overpass API Service
- * Fetches nearby essential services from OpenStreetMap data.
+ * overpass.js — OpenStreetMap Overpass API Service
+ *
+ * @description  Fetches nearby essential services (hospitals, ATMs, restrooms,
+ *               cafes) within a 2km radius of the user's current location
+ *               using the Overpass API.
  */
 export const fetchNearbyEssentials = async (lat, lon, type = "hospital") => {
   // Types: hospital, atm, pharmacy, toilets, cafe

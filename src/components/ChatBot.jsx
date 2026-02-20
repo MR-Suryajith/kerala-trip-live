@@ -1,3 +1,11 @@
+/**
+ * ChatBot.jsx
+ *
+ * @description  Floating AI chatbot component. Provides contextual travel
+ *               suggestions and answers user queries using the Gemini API.
+ *               Adapts suggestions based on whether an itinerary is active.
+ */
+
 import React, { useState, useRef, useEffect } from 'react';
 import { SendHorizontal, MessageCircle, X, Sparkles, Loader2 } from 'lucide-react';
 
@@ -31,8 +39,8 @@ export default function ChatBot({ itinerary }) {
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef(null);
 
-  const API_URL = window.location.hostname === 'localhost' 
-    ? 'http://localhost:5000/api/chat' 
+  const API_URL = window.location.hostname === 'localhost'
+    ? 'http://localhost:5000/api/chat'
     : 'https://sanchaara-ai.onrender.com/api/chat';
 
   const currentSuggestions = itinerary ? ITINERARY_SUGGESTIONS : GENERAL_SUGGESTIONS;
@@ -66,10 +74,10 @@ export default function ChatBot({ itinerary }) {
       const response = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           message: messageToSend,
-          history: chatHistory, 
-          itineraryContext 
+          history: chatHistory,
+          itineraryContext
         }),
       });
 
@@ -87,7 +95,7 @@ export default function ChatBot({ itinerary }) {
       {/* --- DYNAMIC TOGGLE BUTTON --- */}
       <div className="relative group">
         <div className="absolute inset-0 bg-emerald-500 rounded-full blur-xl opacity-40 group-hover:opacity-70 animate-pulse transition-opacity"></div>
-        <button 
+        <button
           onClick={() => setIsOpen(!isOpen)}
           className={`relative w-16 h-16 rounded-full flex items-center justify-center transition-all duration-500 shadow-2xl active:scale-90 border border-white/20 ${
             isOpen ? 'bg-slate-900 rotate-90' : 'bg-gradient-to-tr from-emerald-600 to-teal-400'
@@ -101,7 +109,7 @@ export default function ChatBot({ itinerary }) {
       {/* --- CHAT WINDOW --- */}
       {isOpen && (
         <div className="absolute bottom-20 right-0 w-[85vw] md:w-96 h-[520px] bg-slate-950/95 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5">
-          
+
           {/* Header */}
           <div className="bg-gradient-to-r from-emerald-600 to-blue-600 p-6 text-white border-b border-white/5">
             <h4 className="font-black text-sm uppercase tracking-[0.3em] flex items-center gap-2">
@@ -116,8 +124,8 @@ export default function ChatBot({ itinerary }) {
             {messages.map((m, i) => (
               <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[85%] p-4 rounded-[1.5rem] text-[13px] leading-relaxed shadow-xl border ${
-                  m.role === 'user' 
-                  ? 'bg-blue-600 border-blue-400/50 text-white rounded-br-none' 
+                  m.role === 'user'
+                  ? 'bg-blue-600 border-blue-400/50 text-white rounded-br-none'
                   : 'bg-white/5 border-white/10 text-white/90 rounded-tl-none backdrop-blur-md'
                 }`}>
                   {m.text}
@@ -147,15 +155,15 @@ export default function ChatBot({ itinerary }) {
 
           {/* Input Bar */}
           <div className="p-4 bg-slate-900/80 border-t border-white/10 flex gap-3 items-center">
-            <input 
-              type="text" 
+            <input
+              type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
               placeholder="Ask Sanchaara..."
               className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-5 py-3 text-white text-xs outline-none focus:border-emerald-500/50 transition-all placeholder:text-white/20"
             />
-            <button 
+            <button
               onClick={() => handleSend()}
               disabled={loading}
               className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-lg active:scale-90 border border-white/10 ${
