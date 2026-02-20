@@ -13,17 +13,42 @@ const app = express();
 app.use(cors({ origin: "*" }));
 app.use(express.json());
 
-// Initialize Google Generative AI
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+// --- MULTI-KEY ROTATION SETUP ---
+// We support up to 3 specific keys, and fallback to the original GEMINI_API_KEY if specific ones aren't set
+const apiKeys = [
+  process.env.GEMINI_API_KEY_1,
+  process.env.GEMINI_API_KEY_2,
+  process.env.GEMINI_API_KEY_3,
+  process.env.GEMINI_API_KEY
+].filter(Boolean); // Filter out any undefined/null keys
+
+if (apiKeys.length === 0) {
+  console.warn("⚠️ WARNING: No Gemini API keys found in the environment variables!");
+}
+
+let currentKeyIndex = 0;
 
 /**
- * Helper function for "Retry with Exponential Backoff"
- * This specifically handles 429 (Quota) and 503 (Overloaded) errors
- * ensuring the server stays stable under load.
+ * Creates a fresh Gemini GenAI instance using the currently active key.
  */
-const generateWithRetry = async (model, prompt, retries = 3, delay = 2000) => {
-  for (let i = 0; i < retries; i++) {
+const getActiveModel = (modelName, config = {}) => {
+  const genAI = new GoogleGenerativeAI(apiKeys[currentKeyIndex]);
+  return genAI.getGenerativeModel({ model: modelName, ...config });
+};
+
+/**
+ * Helper function for "Retry with Exponential Backoff" & "Multi-Key Rotation"
+ * This specifically handles 429 (Quota) and 503 (Overloaded) errors.
+ * On 429 errors, it instantly swaps to the next available API key.
+ */
+const generateWithRetry = async (modelName, config, prompt, retries = 3, delay = 2000) => {
+  let attempt = 0;
+  // Increase total possible attempts if we have multiple keys to ensure we can try all of them
+  const maxAttempts = retries + apiKeys.length;
+
+  while (attempt < maxAttempts) {
     try {
+      const model = getActiveModel(modelName, config);
       const result = await model.generateContent(prompt);
       const responseText = result.response.text();
 
@@ -33,27 +58,34 @@ const generateWithRetry = async (model, prompt, retries = 3, delay = 2000) => {
       }
       return responseText;
     } catch (error) {
-      const isRetryable =
-        error.message.includes("429") ||
-        error.message.includes("503") ||
-        error.message.includes("overloaded");
+      attempt++;
 
-      if (isRetryable && i < retries - 1) {
-        console.log(
-          `⚠️ AI Busy/Quota reached. Retrying in ${delay}ms... (Attempt ${
-            i + 1
-          }/${retries})`
-        );
+      const isQuotaError = error.message.includes("429") || error.message.includes("quota");
+      const isOverloaded = error.message.includes("503") || error.message.includes("overloaded");
+
+      if (isQuotaError) {
+        // ROTATE TO THE NEXT API KEY
+        if (apiKeys.length > 1) {
+          const prevIndex = currentKeyIndex;
+          currentKeyIndex = (currentKeyIndex + 1) % apiKeys.length;
+          console.log(`⚠️ Quota Reached on Key ${prevIndex + 1}/${apiKeys.length}. Rotating to Key ${currentKeyIndex + 1}/${apiKeys.length}...`);
+          // Note: On quota errors we instantly retry with the new key without a massive delay
+          delay = 1000;
+        } else {
+           console.log(`⚠️ Quota Reached, but only 1 API key is configured. Retrying in ${delay}ms... (Attempt ${attempt}/${maxAttempts})`);
+           await new Promise((res) => setTimeout(res, delay));
+           delay *= 2;
+        }
+      } else if (isOverloaded && attempt < maxAttempts) {
+        console.log(`⚠️ AI Server Overloaded. Retrying in ${delay}ms... (Attempt ${attempt}/${maxAttempts})`);
         await new Promise((res) => setTimeout(res, delay));
-        delay *= 2; // Exponential backoff
+        delay *= 2; // Exponential backoff for typical network/server load issues
       } else {
-        throw error;
+        throw error; // If it's a different error (like 400 Bad Request), or we ran out of retries, fail
       }
     }
   }
-  throw new Error(
-    "Sanchaara AI servers are at maximum capacity. Please wait 10-15 seconds."
-  );
+  throw new Error("Sanchaara AI servers are at maximum capacity or all API keys have exhausted their quotas. Please wait a moment.");
 };
 
 /**
@@ -86,10 +118,8 @@ app.post("/api/generate-itinerary", async (req, res) => {
 
     // STEP 1: GEOGRAPHICAL VALIDATION (INDIA GEOFENCE)
     console.log(`🔍 Verifying destination: ${destination}`);
-    const validatorModel = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash-lite",
-    });
-    const verifyPrompt = `Is the location "${destination}" situated within the country of INDIA? 
+    const validatorModel = getActiveModel("gemini-2.5-flash-lite");
+    const verifyPrompt = `Is the location "${destination}" situated within the country of INDIA?
     Reply strictly with only the word "TRUE" or "FALSE". If it's outside India, reply "FALSE".`;
 
     const checkResult = await validatorModel.generateContent(verifyPrompt);
@@ -107,8 +137,8 @@ app.post("/api/generate-itinerary", async (req, res) => {
     }
 
     // STEP 2: CONFIGURE GENERATION MODEL
-    const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash-lite", // Using the user-confirmed working version
+    const modelName = "gemini-2.5-flash-lite"; // Using the user-confirmed working version
+    const config = {
       generationConfig: {
         temperature: 0.4, // Lower temperature for more stable JSON output
         responseMimeType: "application/json",
@@ -124,7 +154,7 @@ app.post("/api/generate-itinerary", async (req, res) => {
           threshold: HarmBlockThreshold.BLOCK_NONE,
         },
       ],
-    });
+    };
 
     console.log(`✈️ Planning Journey: ${formData.origin} ➔ ${destination}`);
 
@@ -164,24 +194,24 @@ app.post("/api/generate-itinerary", async (req, res) => {
         "dayNumber": 1, "date": "...", "cityLocation": "...",
         "weather": { "temp": "...", "condition": "...", "icon": "emoji", "advice": "..." },
         "dailyDose": { "recipe": "...", "movie": "...", "game": "..." },
-        "places": [{ 
+        "places": [{
             "name": "...",
-            "coordinates": { "lat": 0.0, "lng": 0.0 }, 
+            "coordinates": { "lat": 0.0, "lng": 0.0 },
             "crowdAnalysis": { "peakHours": "...", "occupancy": 80, "status": "Busy", "waitFactor": "20 mins", "trend": "rising" },
-            "rank": 9.5, 
-            "time": "...", 
-            "trafficStatus": "...", 
-            "distanceFromPrevious": "...", 
-            "travelTimeFromPrevious": "...", 
-            "description": "...", 
-            "alternativePlace": "...", 
-            "altReason": "..." 
+            "rank": 9.5,
+            "time": "...",
+            "trafficStatus": "...",
+            "distanceFromPrevious": "...",
+            "travelTimeFromPrevious": "...",
+            "description": "...",
+            "alternativePlace": "...",
+            "altReason": "..."
         }]
       }],
       "estimatedTotalCost": "₹... total for ${formData.travelers} people"
     }`;
 
-    const textResponse = await generateWithRetry(model, prompt);
+    const textResponse = await generateWithRetry(modelName, config, prompt);
     const finalItinerary = cleanAndParseJSON(textResponse);
 
     res.json(finalItinerary);
@@ -211,8 +241,7 @@ app.post("/api/chat", async (req, res) => {
       )}. Answer accordingly.`;
     }
 
-    const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash-lite", // Using Flash for faster chat response
+    const model = getActiveModel("gemini-2.5-flash-lite", {
       systemInstruction: systemInstruction,
     });
 
@@ -253,7 +282,7 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Sanchaara Server live on http://localhost:${PORT}`);
   console.log(
-    `🔑 Key Status: ${process.env.GEMINI_API_KEY ? "CONFIGURED" : "MISSING"}`
+    `🔑 Key Status: ${apiKeys.length > 0 ? "CONFIGURED (" + apiKeys.length + " keys active)" : "MISSING"}`
   );
 });
 
