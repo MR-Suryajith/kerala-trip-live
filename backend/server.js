@@ -362,8 +362,68 @@ app.post("/api/chat", async (req, res) => {
 
 
 // =============================================================================
-// SERVER STARTUP
+// API ENDPOINTS: BOOKING INTEGRATIONS (Informational Only)
 // =============================================================================
+
+const booking = require("./bookingService");
+
+/**
+ * POST /api/search-flights
+ * Searches for flight offers via Amadeus API.
+ */
+app.post("/api/search-flights", async (req, res) => {
+  try {
+    const { origin, destination, date, adults } = req.body;
+    const originCode = booking.resolveIATACode(origin);
+    const destCode = booking.resolveIATACode(destination);
+
+    console.log(`✈️ Flight Search: ${originCode} → ${destCode} on ${date}`);
+    const flights = await booking.searchFlights(originCode, destCode, date, adults || 1);
+    res.json({ flights });
+  } catch (error) {
+    console.error("❌ Flight Search Error:", error.message);
+    res.status(200).json({ flights: [], error: error.message });
+  }
+});
+
+/**
+ * POST /api/search-hotels
+ * Searches for hotels near the destination via Amadeus API.
+ */
+app.post("/api/search-hotels", async (req, res) => {
+  try {
+    const { destination } = req.body;
+    const cityCode = booking.resolveIATACode(destination);
+
+    console.log(`🏨 Hotel Search: ${cityCode}`);
+    const hotels = await booking.searchHotels(cityCode);
+    res.json({ hotels });
+  } catch (error) {
+    console.error("❌ Hotel Search Error:", error.message);
+    res.status(200).json({ hotels: [], error: error.message });
+  }
+});
+
+/**
+ * POST /api/search-trains
+ * Searches for trains between stations via RapidAPI.
+ */
+app.post("/api/search-trains", async (req, res) => {
+  try {
+    const { origin, destination, date } = req.body;
+    const fromCode = booking.resolveStationCode(origin);
+    const toCode = booking.resolveStationCode(destination);
+
+    console.log(`🚆 Train Search: ${fromCode} → ${toCode} on ${date}`);
+    const trains = await booking.searchTrains(fromCode, toCode, date);
+    res.json({ trains });
+  } catch (error) {
+    console.error("❌ Train Search Error:", error.message);
+    res.status(200).json({ trains: [], error: error.message });
+  }
+});
+
+
 
 const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, "0.0.0.0", () => {

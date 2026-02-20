@@ -12,6 +12,7 @@ import MapComponent from './MapComponent';
 import jsPDF from 'jspdf';
 import CrowdAnalyzer from './CrowdAnalyzer';
 import SurvivalGrid from './SurvivalGrid';
+import BookingHub from './BookingHub';
 import {
   Download, RefreshCw, Zap, Wind, Utensils,
   Film, Gamepad2, Navigation, Clock, CheckCircle2,
@@ -20,6 +21,7 @@ import {
 
 export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showBooking, setShowBooking] = useState(false);
 
   if (!itinerary || !itinerary.days || !itinerary.initialLogistics) return null;
 
@@ -181,9 +183,72 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
             </div>
           </div>
           <div className="lg:col-span-2 h-[300px] md:h-[350px]">
-            <MapComponent origin={itinerary.initialLogistics.from} destination={itinerary.initialLogistics.to} isFlight={itinerary.initialLogistics.mode?.toLowerCase().includes('flight')} />
+            {itinerary.initialLogistics.mode?.toLowerCase().includes('flight') ? (
+              /* ✈️ FLIGHT: Real map + aerial info overlay */
+              <div className="w-full h-full relative overflow-hidden">
+                {/* Google Maps embed showing destination area, zoomed to show both cities */}
+                <iframe
+                  title="Flight Route Map"
+                  src={`https://maps.google.com/maps?q=${encodeURIComponent(itinerary.initialLogistics.to)}&z=5&output=embed`}
+                  className="w-full h-full border-0 grayscale opacity-60"
+                  loading="lazy"
+                />
+                {/* Overlay: flight info on top of map */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <div className="bg-slate-950/80 backdrop-blur-md border border-white/10 rounded-2xl px-8 py-5 flex items-center gap-6 shadow-2xl">
+                    <div className="text-center">
+                      <p className="text-[7px] font-bold text-white/30 uppercase tracking-[0.2em] mb-1">From</p>
+                      <p className="text-xs font-black text-white">{itinerary.initialLogistics.from}</p>
+                    </div>
+                    <div className="text-center">
+                      <span className="text-xl">✈️</span>
+                      <p className="text-[9px] font-black text-blue-400 mt-1">{itinerary.initialLogistics.distance}</p>
+                      <p className="text-[7px] text-white/20 uppercase tracking-wider">aerial</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-[7px] font-bold text-white/30 uppercase tracking-[0.2em] mb-1">To</p>
+                      <p className="text-xs font-black text-white">{itinerary.initialLogistics.to}</p>
+                    </div>
+                  </div>
+                  <a
+                    href={`https://www.google.com/travel/flights?q=flights+from+${encodeURIComponent(itinerary.initialLogistics.from)}+to+${encodeURIComponent(itinerary.initialLogistics.to)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="pointer-events-auto mt-3 text-[9px] font-black text-blue-400/70 hover:text-blue-400 uppercase tracking-widest border border-blue-500/20 hover:border-blue-500/40 bg-slate-950/70 px-4 py-2 rounded-lg transition-all"
+                  >
+                    Search Flights on Google ↗
+                  </a>
+                </div>
+              </div>
+            ) : (
+              /* 🚗 GROUND: Standard Google Maps embed */
+              <MapComponent origin={itinerary.initialLogistics.from} destination={itinerary.initialLogistics.to} isFlight={false} mode={itinerary.initialLogistics.mode || ''} />
+            )}
           </div>
         </section>
+
+        {/* 🎫 LIVE BOOKING INTEL — Trigger Button */}
+        <div className="flex justify-center">
+          <button
+            onClick={() => setShowBooking(true)}
+            className="group flex items-center gap-3 bg-gradient-to-r from-blue-600/20 to-purple-600/20 hover:from-blue-600/40 hover:to-purple-600/40 border border-white/10 hover:border-white/20 px-8 py-4 rounded-2xl transition-all duration-300 active:scale-95 shadow-lg hover:shadow-blue-500/10"
+          >
+            <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
+            <span className="text-[10px] font-black text-white/70 uppercase tracking-[0.3em] group-hover:text-white/90 transition-colors">Live Travel Intel</span>
+            <span className="text-white/30 text-xs">→</span>
+          </button>
+        </div>
+
+        {/* BOOKING MODAL */}
+        {showBooking && (
+          <BookingHub
+            logistics={itinerary.initialLogistics}
+            destination={itinerary.days?.[0]?.cityLocation || ''}
+            startDate={itinerary.days?.[0]?.date || ''}
+            travelers={1}
+            onClose={() => setShowBooking(false)}
+          />
+        )}
 
         {/* 📅 DAILY CARDS (Responsive Layout) */}
         <div className="space-y-16 md:space-y-24">

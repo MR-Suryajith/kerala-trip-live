@@ -23,12 +23,19 @@ export default function MapComponent({ origin, destination, isFlight = false, mo
     return '🚗';
   };
 
-  // Free Google Maps Embed URL
-  const zoom = isFlight ? 5 : 12;
-  const mapUrl = `https://maps.google.com/maps?saddr=${start}&daddr=${end}&output=embed&z=${zoom}`;
+  // Select Google Maps routing flag based on transport mode
+  const getDirFlag = () => {
+    const m = mode.toLowerCase();
+    if (m.includes('train')) return 'r';  // r = transit/rail
+    if (m.includes('bus'))   return 'r';  // r = transit covers bus too
+    return 'd';                            // d = driving (car, default)
+  };
 
-  // Direct External Link for Mobile Navigation
-  const externalMapUrl = `https://www.google.com/maps/dir/?api=1&origin=${start}&destination=${end}&travelmode=${isFlight ? 'flight' : 'driving'}`;
+  const zoom = 8;
+  const mapUrl = `https://maps.google.com/maps?saddr=${start}&daddr=${end}&dirflg=${getDirFlag()}&output=embed&z=${zoom}`;
+
+  // External navigation link
+  const externalMapUrl = `https://www.google.com/maps/dir/?api=1&origin=${start}&destination=${end}&travelmode=${mode.toLowerCase().includes('train') ? 'transit' : 'driving'}`;
 
   return (
     <div className="w-full mt-3 group relative">
