@@ -388,13 +388,19 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
           </div>
         )}
 
-        {itinerary.localPulse && (
-          <div className="overflow-hidden bg-blue-500/10 border-y border-white/5 backdrop-blur-md py-3 sm:py-4 rounded-xl sm:rounded-2xl relative">
-            <div className="flex animate-marquee whitespace-nowrap gap-10 sm:gap-20">
+        {itinerary.localPulse && itinerary.localPulse.length > 0 && (
+          <div className="bg-gradient-to-r from-blue-600/10 to-purple-600/10 backdrop-blur-xl border border-blue-500/20 p-4 sm:p-6 md:p-8 rounded-2xl sm:rounded-[2rem] md:rounded-[2.5rem] shadow-xl">
+            <h6 className="text-blue-400 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.3em] mb-4 sm:mb-6 flex items-center gap-2">
+              <TrendingUp className="w-4 h-4" /> Local Pulse
+            </h6>
+            <div className="flex flex-wrap gap-3 sm:gap-4 md:gap-5">
               {itinerary.localPulse.map((event, i) => (
-                <span key={i} className="flex items-center gap-2 sm:gap-3 text-blue-300 font-black text-[9px] sm:text-[10px] md:text-[11px] uppercase tracking-[0.2em] sm:tracking-[0.3em]">
-                  <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-green-400" /> {safeRender(event)}
-                </span>
+                <div key={i} className="flex items-center gap-2.5 sm:gap-3 bg-white/5 border border-white/10 px-4 py-2 sm:px-5 sm:py-3 rounded-xl sm:rounded-2xl hover:bg-white/10 hover:border-white/20 transition-all cursor-default">
+                  <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-blue-400"></div>
+                  <span className="text-blue-50/90 font-bold text-[10px] sm:text-xs md:text-sm uppercase tracking-wide">
+                    {safeRender(event)}
+                  </span>
+                </div>
               ))}
             </div>
           </div>
