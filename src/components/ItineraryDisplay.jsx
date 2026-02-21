@@ -21,13 +21,65 @@ import {
   Download, RefreshCw, Zap, Wind,
   Navigation, Clock, CheckCircle2,
   Share2, Wallet, Users, TrendingUp, Info,
-  Trees, Clapperboard, ShoppingBag, Eye, MapPin, Copy, Send, Twitter, Lightbulb
+  Trees, Clapperboard, ShoppingBag, Eye, MapPin, Copy, Send, Twitter, Lightbulb,
+  Backpack, X, Shirt, Heart, FileText, Loader2, Check
 } from 'lucide-react';
 
 export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [showBooking, setShowBooking] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
+  const [showPackingList, setShowPackingList] = useState(false);
+  const [packingData, setPackingData] = useState(null);
+  const [packingLoading, setPackingLoading] = useState(false);
+  const [checkedItems, setCheckedItems] = useState({});
+
+  const PACKING_API = window.location.hostname === 'localhost'
+    ? 'http://localhost:5000/api/packing-list'
+    : 'https://sanchaara-ai.onrender.com/api/packing-list';
+
+  const packingIcons = {
+    shirt: <Shirt className="w-4 h-4" />,
+    heart: <Heart className="w-4 h-4" />,
+    zap: <Zap className="w-4 h-4" />,
+    file: <FileText className="w-4 h-4" />,
+    backpack: <Backpack className="w-4 h-4" />,
+  };
+
+  const fetchPackingList = async () => {
+    if (packingData) { setShowPackingList(true); return; }
+    setShowPackingList(true);
+    setPackingLoading(true);
+    try {
+      const activities = itinerary.days.flatMap(d => d.places.map(p => p.name)).join(', ');
+      const weather = itinerary.days[0]?.weather?.condition || itinerary.seasonalNote || '';
+      const res = await fetch(PACKING_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          destination: itinerary.days[0]?.cityLocation,
+          days: itinerary.days.length,
+          weather,
+          activities,
+          travelers: itinerary.budgetAnalysis?.perPerson ? 'multiple' : '1'
+        }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setPackingData(data);
+    } catch (err) {
+      console.error('Packing list error:', err);
+      alert('Could not generate packing list. Please try again.');
+      setShowPackingList(false);
+    } finally {
+      setPackingLoading(false);
+    }
+  };
+
+  const toggleCheck = (catIdx, itemIdx) => {
+    const key = `${catIdx}-${itemIdx}`;
+    setCheckedItems(prev => ({ ...prev, [key]: !prev[key] }));
+  };
 
   if (!itinerary || !itinerary.days || !itinerary.initialLogistics) return null;
 
@@ -310,6 +362,10 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
           <button onClick={onEdit} className="group/btn relative overflow-hidden p-2 sm:p-3 bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-blue-600/10 hover:from-blue-600/25 hover:via-purple-600/25 hover:to-blue-600/25 rounded-xl sm:rounded-2xl transition-all duration-500 border border-white/10 hover:border-blue-400/30 active:scale-[0.97] shadow-lg hover:shadow-blue-500/20">
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent translate-x-[-100%] group-hover/btn:translate-x-[100%] transition-transform duration-700"></div>
             <RefreshCw className="relative w-4 h-4 sm:w-5 sm:h-5 text-white/60 group-hover/btn:text-white transition-colors" />
+          </button>
+          <button onClick={fetchPackingList} className="group/btn relative overflow-hidden flex items-center gap-1.5 sm:gap-2 bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-blue-600/10 hover:from-blue-600/25 hover:via-purple-600/25 hover:to-blue-600/25 text-white/70 hover:text-white border border-white/10 hover:border-blue-400/30 px-3 py-2 sm:px-4 sm:py-2.5 md:px-5 md:py-3 rounded-xl sm:rounded-2xl font-black text-[8px] sm:text-[9px] md:text-[10px] uppercase tracking-wider sm:tracking-widest transition-all duration-500 active:scale-[0.97] shadow-lg hover:shadow-blue-500/20">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent translate-x-[-100%] group-hover/btn:translate-x-[100%] transition-transform duration-700"></div>
+            <Backpack className="relative w-3.5 h-3.5 sm:w-4 sm:h-4" /> <span className="relative">Pack List</span>
           </button>
           <button onClick={exportPDF} disabled={isGenerating} className="group/btn relative overflow-hidden flex items-center gap-1.5 sm:gap-2 bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-blue-600/10 hover:from-blue-600/25 hover:via-purple-600/25 hover:to-blue-600/25 text-white/70 hover:text-white border border-white/10 hover:border-blue-400/30 px-3 py-2 sm:px-4 sm:py-2.5 md:px-6 md:py-3 rounded-xl sm:rounded-2xl font-black text-[8px] sm:text-[9px] md:text-[10px] uppercase tracking-wider sm:tracking-widest transition-all duration-500 active:scale-[0.97] shadow-lg hover:shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed">
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent translate-x-[-100%] group-hover/btn:translate-x-[100%] transition-transform duration-700"></div>
@@ -615,6 +671,104 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
           </div>
         </footer>
       </main>
+
+      {/* ═══════ SMART PACKING LIST OVERLAY ═══════ */}
+      {showPackingList && (
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setShowPackingList(false)}></div>
+          <div className="relative w-full sm:w-[480px] max-h-[85vh] sm:max-h-[80vh] flex flex-col rounded-t-3xl sm:rounded-3xl overflow-hidden border border-white/10 shadow-[0_-10px_60px_rgba(0,0,0,0.6)]"
+            style={{ background: 'linear-gradient(180deg, rgba(12,20,37,0.98) 0%, rgba(8,14,28,0.99) 100%)' }}
+          >
+            {/* Header */}
+            <div className="relative px-6 py-5 border-b border-white/5 shrink-0">
+              <div className="absolute -top-10 -left-10 w-28 h-28 bg-emerald-500/10 rounded-full blur-3xl"></div>
+              <div className="relative flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/20 flex items-center justify-center">
+                    <Backpack className="w-5 h-5 text-emerald-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-black text-white uppercase tracking-[0.2em]">Smart Packing List</h3>
+                    <p className="text-[9px] text-white/30 font-medium tracking-wider mt-0.5">
+                      {packingData ? `${packingData.categories?.reduce((a, c) => a + c.items.length, 0)} items` : 'Generating...'}
+                      {packingData && ` · ${Object.values(checkedItems).filter(Boolean).length} packed`}
+                    </p>
+                  </div>
+                </div>
+                <button onClick={() => setShowPackingList(false)} className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 flex items-center justify-center transition-all active:scale-90">
+                  <X className="w-3.5 h-3.5 text-white/40" />
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5" style={{ scrollbarWidth: 'none' }}>
+              {packingLoading && (
+                <div className="flex flex-col items-center justify-center py-16 gap-4">
+                  <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
+                  <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em]">Analyzing your trip...</p>
+                </div>
+              )}
+
+              {packingData?.categories?.map((cat, catIdx) => (
+                <div key={catIdx} className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-4 space-y-2">
+                  <div className="flex items-center gap-2.5 mb-3">
+                    <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-emerald-400">
+                      {packingIcons[cat.icon] || <Backpack className="w-4 h-4" />}
+                    </div>
+                    <span className="text-[10px] font-black text-white/50 uppercase tracking-[0.2em]">{cat.name}</span>
+                    <span className="ml-auto text-[9px] text-white/20 font-bold">
+                      {cat.items.filter((_, i) => checkedItems[`${catIdx}-${i}`]).length}/{cat.items.length}
+                    </span>
+                  </div>
+                  {cat.items.map((item, itemIdx) => {
+                    const isChecked = checkedItems[`${catIdx}-${itemIdx}`];
+                    return (
+                      <button
+                        key={itemIdx}
+                        onClick={() => toggleCheck(catIdx, itemIdx)}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-300 text-left group ${
+                          isChecked ? 'bg-emerald-500/10 border border-emerald-500/15' : 'hover:bg-white/[0.03] border border-transparent'
+                        }`}
+                      >
+                        <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 transition-all duration-300 ${
+                          isChecked ? 'bg-emerald-500 border-emerald-400' : 'border border-white/15 bg-transparent'
+                        }`}>
+                          {isChecked && <Check className="w-3 h-3 text-white" />}
+                        </div>
+                        <span className={`text-[12px] font-medium transition-all duration-300 ${
+                          isChecked ? 'text-white/30 line-through' : 'text-white/70'
+                        }`}>
+                          {item}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+
+            {/* Footer progress */}
+            {packingData && (
+              <div className="px-6 py-4 border-t border-white/5 shrink-0">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[9px] font-black text-white/30 uppercase tracking-wider">Packing Progress</span>
+                  <span className="text-[10px] font-black text-emerald-400">
+                    {Math.round((Object.values(checkedItems).filter(Boolean).length / packingData.categories?.reduce((a, c) => a + c.items.length, 0)) * 100) || 0}%
+                  </span>
+                </div>
+                <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-emerald-500 to-cyan-400 rounded-full transition-all duration-500"
+                    style={{ width: `${(Object.values(checkedItems).filter(Boolean).length / (packingData.categories?.reduce((a, c) => a + c.items.length, 0) || 1)) * 100}%` }}
+                  ></div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

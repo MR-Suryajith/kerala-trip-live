@@ -451,6 +451,97 @@ app.post("/api/search-trains", async (req, res) => {
 });
 
 
+// =============================================================================
+// API ENDPOINT: SMART PACKING LIST (Groq / Llama 3.3)
+// =============================================================================
+// Uses a separate AI provider (Groq) to avoid Gemini quota consumption.
+
+const Groq = require("groq-sdk");
+const groqClient = process.env.GROQ_API_KEY ? new Groq({ apiKey: process.env.GROQ_API_KEY }) : null;
+
+app.post("/api/packing-list", async (req, res) => {
+  try {
+    if (!groqClient) {
+      return res.status(500).json({ error: "Groq API key not configured." });
+    }
+
+    const { destination, days, weather, activities, travelers } = req.body;
+
+    const prompt = `You are an expert travel packing assistant for DOMESTIC INDIA travel. The traveler is an Indian citizen traveling WITHIN India. Generate a smart packing checklist for this trip:
+    - Destination: ${destination}, India
+    - Duration: ${days} days
+    - Weather: ${weather || "Unknown"}
+    - Activities: ${activities || "General sightseeing"}
+    - Travelers: ${travelers || 1} people
+
+    Return ONLY a valid JSON object with this exact structure (no markdown, no extra text):
+    {
+      "categories": [
+        {
+          "name": "Clothing",
+          "icon": "shirt",
+          "items": ["Item 1", "Item 2"]
+        },
+        {
+          "name": "Toiletries & Health",
+          "icon": "heart",
+          "items": ["Item 1", "Item 2"]
+        },
+        {
+          "name": "Electronics",
+          "icon": "zap",
+          "items": ["Item 1", "Item 2"]
+        },
+        {
+          "name": "Documents & Money",
+          "icon": "file",
+          "items": ["Item 1", "Item 2"]
+        },
+        {
+          "name": "Essentials",
+          "icon": "backpack",
+          "items": ["Item 1", "Item 2"]
+        }
+      ]
+    }
+
+    Rules:
+    - This is DOMESTIC travel within India. NEVER suggest passport, visa, or any international travel documents.
+    - For documents, suggest: Aadhaar Card, Driving License, train/flight tickets, hotel bookings, etc.
+    - Keep items practical and specific to the destination/weather
+    - Max 6-8 items per category
+    - Include destination-specific items (e.g., rain gear for monsoon Kerala, sunscreen for Goa beaches, warm layers for Manali)
+    - No generic filler items`;
+
+    console.log(`🎒 Generating packing list for ${destination} (${days} days)`);
+
+    const chatCompletion = await groqClient.chat.completions.create({
+      messages: [{ role: "user", content: prompt }],
+      model: "llama-3.3-70b-versatile",
+      temperature: 0.3,
+      max_completion_tokens: 1024,
+    });
+
+    const responseText = chatCompletion.choices[0]?.message?.content || "";
+
+    // Extract JSON from response
+    const jsonStart = responseText.indexOf("{");
+    const jsonEnd = responseText.lastIndexOf("}") + 1;
+    if (jsonStart === -1 || jsonEnd === 0) {
+      throw new Error("No valid JSON in Groq response");
+    }
+
+    const packingList = JSON.parse(responseText.substring(jsonStart, jsonEnd));
+    console.log("✅ Packing list generated successfully.");
+    res.json(packingList);
+
+  } catch (error) {
+    console.error("❌ Packing List Error:", error.message);
+    res.status(500).json({ error: "Could not generate packing list. Please try again." });
+  }
+});
+
+
 
 const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, "0.0.0.0", () => {
