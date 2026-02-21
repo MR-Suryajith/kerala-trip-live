@@ -266,19 +266,35 @@ app.post("/api/generate-itinerary", async (req, res) => {
       ? `\n⚠️ SPECIAL MODIFICATION: ${formData.specialInstruction}. You MUST adjust the itinerary to reflect this change.`
       : "";
 
+    // --- Budget Tier Mapping ---
+    const budgetTiers = {
+      budget: { label: 'Budget', perDay: '₹800–1,500 per person/day', style: 'Hostels, dormitories, street food, public transport, free attractions' },
+      comfort: { label: 'Comfort', perDay: '₹2,000–4,000 per person/day', style: '3-star hotels, mid-range restaurants, mix of private/public transport, paid attractions' },
+      luxury: { label: 'Luxury', perDay: '₹6,000+ per person/day', style: '5-star resorts, fine dining, private car/flights, premium experiences, spa & wellness' },
+    };
+    const tier = budgetTiers[formData.budget] || budgetTiers.comfort;
+    let budgetInstruction;
+    if (formData.budget === 'custom' && formData.customBudget) {
+      budgetInstruction = `Total Budget Limit: ₹${formData.customBudget} for ${formData.travelers} travelers over ${formData.days} days. Allocate this amount wisely.`;
+    } else if (budgetTiers[formData.budget]) {
+      budgetInstruction = `Budget Tier: ${tier.label} (${tier.perDay}). Style: ${tier.style}. Calculate the total budget as: ${formData.travelers} travelers × ${formData.days} days × per-day rate.`;
+    } else {
+      budgetInstruction = `Total Budget Limit: ₹${formData.budget}`;
+    }
+
     // --- Step 3: Construct the AI Prompt ---
     const prompt = `Act as an expert Indian Travel Guide, Logistics Analyst, and Financial Planner.
     Generate a ${formData.days}-day travel plan from ${formData.origin} to ${destination}, India.
-    Travelers: ${formData.travelers} | Total Budget Limit: ₹${formData.budget} | Preferred Global Transport Mode: ${transportMode} | Interests: ${formData.interests.join(", ")} ${modificationNote}
+    Travelers: ${formData.travelers} | ${budgetInstruction} | Preferred Global Transport Mode: ${transportMode} | Interests: ${formData.interests.join(", ")} ${modificationNote}
 
     STRICT OUTPUT RULES:
     1. INITIAL TRANSIT (${formData.origin} to nearest hub for ${destination}): YOU MUST use the preferred mode "${transportMode}" if possible.
        - The 'duration' MUST be realistic for this specific mode (e.g. Flight is ~2-4 hrs, Train might be 20-40+ hrs depending on distance).
-       - If the user's budget (₹${formData.budget}) is too low for this mode, STILL GENERATE the plan using this mode.
-    2. BUDGET WARNINGS: If the trip is hilariously underbudgeted (e.g., ₹100 for a Flight to Goa), you MUST put your funny warning inside \`budgetAnalysis.breakdown.FinancialWarning\`. You are FORBIDDEN from putting budget warnings in \`weatherAndFestivalAdvice\`.
+       - STILL GENERATE the plan using this mode regardless of budget tier.
+    2. BUDGET WARNINGS: If the budget tier seems too low for the trip (e.g., Budget tier for a luxury destination), you MUST put a funny warning inside \`budgetAnalysis.breakdown.FinancialWarning\`. You are FORBIDDEN from putting budget warnings in \`weatherAndFestivalAdvice\`.
     3. LOCAL TRANSIT (between daily places): Do NOT show flight times. Show ONLY ground travel (distance + driving/walking time).
     4. localPulse: Identify real festivals/events in ${destination} on these dates. MUST be an array of simple strings.
-    5. budgetAnalysis: Split ₹${formData.budget} logically. Total and perPerson must be simple strings (e.g., "₹50,000").
+    5. budgetAnalysis: Calculate realistic total based on the "${tier.label}" tier for ${formData.travelers} travelers over ${formData.days} days. Total and perPerson must be simple strings (e.g., "₹50,000").
     6. weather icon: Use ONLY one real emoji (☀️, 🌧️, ☁️, 🌫️, 🌩️).
     7. DATA PRECISION: Ensure 'coordinates' are as accurate as possible for the specific landmark.
     8. UNIQUE PLACES (CRITICAL): Every single place across ALL days MUST be unique. NEVER repeat the same place on different days. If you run out of well-known spots, suggest hidden gems, local markets, nature trails, viewpoints, temples, cultural workshops, or artisan villages. Variety is paramount.

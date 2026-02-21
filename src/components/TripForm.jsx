@@ -37,7 +37,8 @@ export default function TripForm({ onItinerary, onLoading }) {
     startDate: '',
     endDate: '',
     travelers: '',
-    budget: '',
+    budget: 'comfort',
+    customBudget: '',
     transportMode: '',
     interests: []
   });
@@ -152,35 +153,70 @@ export default function TripForm({ onItinerary, onLoading }) {
           </div>
         </div>
 
-        {/* --- ROW 3: LOGISTICS --- */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-8">
-          <div className="flex flex-col gap-2.5">
-            <label className="flex items-center gap-2 text-[9px] md:text-[10px] font-black uppercase tracking-[0.25em] ml-1 text-white/50">
-                <Users className="w-3 h-3" /> Number of People
-            </label>
-            <input
-              type="number"
-              value={formData.travelers}
-              onChange={(e) => setFormData({ ...formData, travelers: e.target.value })}
-              placeholder="Total People"
-              className={inputBase}
-              min="1"
-              required
-            />
+        {/* --- ROW 3: TRAVELERS --- */}
+        <div className="flex flex-col gap-2.5">
+          <label className="flex items-center gap-2 text-[9px] md:text-[10px] font-black uppercase tracking-[0.25em] ml-1 text-white/50">
+              <Users className="w-3 h-3" /> Number of People
+          </label>
+          <input
+            type="number"
+            value={formData.travelers}
+            onChange={(e) => setFormData({ ...formData, travelers: e.target.value })}
+            placeholder="Total People"
+            className={inputBase}
+            min="1"
+            required
+          />
+        </div>
+
+        {/* --- ROW 4: TRAVEL STYLE --- */}
+        <div className="flex flex-col gap-3">
+          <label className="flex items-center gap-2 text-[9px] md:text-[10px] font-black uppercase tracking-[0.25em] ml-1 text-emerald-400/80">
+              <Wallet className="w-3 h-3" /> Travel Style
+          </label>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 md:gap-3">
+            {[
+              { id: 'budget', icon: <Wallet className="w-4 h-4 md:w-5 md:h-5" />, label: 'Budget', desc: 'Hostels & street food', hint: '₹800–1.5K/day' },
+              { id: 'comfort', icon: <Compass className="w-4 h-4 md:w-5 md:h-5" />, label: 'Comfort', desc: 'Hotels & restaurants', hint: '₹2K–4K/day' },
+              { id: 'luxury', icon: <Sparkles className="w-4 h-4 md:w-5 md:h-5" />, label: 'Luxury', desc: 'Resorts & fine dining', hint: '₹6K+/day' },
+              { id: 'custom', icon: <Navigation className="w-4 h-4 md:w-5 md:h-5" />, label: 'Custom', desc: 'Set your own budget', hint: 'You decide' },
+            ].map(tier => (
+              <button
+                key={tier.id}
+                type="button"
+                onClick={() => setFormData({ ...formData, budget: tier.id, customBudget: tier.id === 'custom' ? formData.customBudget : '' })}
+                className={`relative flex flex-col items-center gap-1.5 py-3.5 md:py-5 rounded-xl md:rounded-2xl border transition-all duration-300 active:scale-[0.97] overflow-hidden ${
+                  formData.budget === tier.id
+                    ? 'bg-emerald-500/10 border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.08)]'
+                    : 'bg-transparent border-white/10 hover:bg-white/[0.03] hover:border-white/20'
+                }`}
+              >
+                <span className={`transition-colors ${formData.budget === tier.id ? 'text-emerald-400' : 'text-white/30'}`}>{tier.icon}</span>
+                <span className={`text-[9px] md:text-[10px] font-black uppercase tracking-[0.15em] md:tracking-wider transition-colors ${
+                  formData.budget === tier.id ? 'text-emerald-400' : 'text-white/50'
+                }`}>{tier.label}</span>
+                <span className="text-[7px] md:text-[8px] text-white/20 font-medium hidden sm:block">{tier.desc}</span>
+                <span className={`text-[8px] font-bold transition-colors ${
+                  formData.budget === tier.id ? 'text-emerald-400/50' : 'text-white/15'
+                }`}>{tier.hint}</span>
+              </button>
+            ))}
           </div>
-          <div className="flex flex-col gap-2.5">
-            <label className="flex items-center gap-2 text-[9px] md:text-[10px] font-black uppercase tracking-[0.25em] ml-1 text-white/50">
-                <Wallet className="w-3 h-3" /> Custom Budget (₹)
-            </label>
-            <input
-              type="number"
-              value={formData.budget}
-              onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
-              placeholder="e.g. 50000"
-              className={inputBase}
-              required
-            />
-          </div>
+
+          {/* Custom budget input - slides in when "Custom" is selected */}
+          {formData.budget === 'custom' && (
+            <div className="mt-1">
+              <input
+                type="number"
+                value={formData.customBudget || ''}
+                onChange={(e) => setFormData({ ...formData, customBudget: e.target.value })}
+                placeholder="Enter total budget in ₹ (e.g. 50000)"
+                className={inputBase}
+                min="100"
+                required
+              />
+            </div>
+          )}
         </div>
 
         {/* --- ROW 3.5: TRANSPORT MODE --- */}

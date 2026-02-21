@@ -537,29 +537,29 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
                         <div className="flex flex-col md:flex-row gap-4 sm:gap-6 md:gap-12">
 
                           {/* TIME & TRAFFIC SECTION */}
-                          <div className="w-full md:w-44 lg:w-52 shrink-0 flex flex-row md:flex-col gap-3 sm:gap-4 items-start">
-                             <div className="flex-1 md:flex-none">
+                          <div className="w-full md:w-32 lg:w-40 shrink-0 flex flex-col gap-3 sm:gap-4 items-start">
+                             <div className="w-full min-w-0">
                                <div className="flex items-center gap-1.5 sm:gap-2 text-blue-400 mb-1 sm:mb-2">
                                   <Clock className="w-3 h-3 sm:w-4 sm:h-4 animate-pulse" />
                                   <span className="text-[9px] sm:text-[10px] md:text-[11px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em]">Arrival</span>
                                </div>
-                               <p className="text-xl sm:text-2xl md:text-3xl font-black text-white tracking-tight leading-tight">{place.time}</p>
+                               <p className="text-xl sm:text-2xl md:text-3xl font-black text-white tracking-tight leading-tight break-words">{place.time}</p>
                              </div>
-                             <div className="flex flex-col gap-2 sm:gap-3 md:gap-4 items-start">
+                             <div className="flex flex-col gap-2 sm:gap-3 md:gap-4 items-start w-full">
                                <div className={`inline-flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[8px] sm:text-[9px] font-black ${traffic.bg} ${traffic.color} border border-white/5`}>
                                  <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-current"></span>
                                  {traffic.label}
                                </div>
                                <div className="bg-white/5 border border-white/10 rounded-lg sm:rounded-xl px-3 py-1.5 sm:px-4 sm:py-2">
                                   <p className="text-[7px] sm:text-[8px] font-bold text-white/30 uppercase tracking-widest mb-0.5 sm:mb-1">Route</p>
-                                  <p className="text-[9px] sm:text-[10px] font-black text-green-400 whitespace-nowrap">
+                                  <p className="text-[9px] sm:text-[10px] font-black text-green-400 whitespace-nowrap overflow-hidden text-ellipsis">
                                     {pIdx === 0 && dayIdx === 0 ? itinerary.arrivalLogistics.distance : (place.distanceFromPrevious || 'Local')}
                                   </p>
                                </div>
                              </div>
                           </div>
 
-                          <div className="flex-1 min-w-0">
+                          <div className="flex-1 min-w-0 pl-0 md:pl-8 lg:pl-12 border-t md:border-t-0 md:border-l border-white/5 pt-6 md:pt-0 mt-2 md:mt-0">
                             <h5 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-white mb-3 sm:mb-4 md:mb-6 tracking-tight leading-tight group-hover:text-blue-300 transition-all break-words">{place.name}</h5>
 
                             {/* CROWD ANALYZER */}
@@ -583,7 +583,7 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
                                 <p className="text-yellow-500 text-[8px] sm:text-[9px] md:text-[10px] font-black uppercase tracking-widest mb-3 sm:mb-4 flex items-center gap-2"><RefreshCw className="w-3 h-3" /> Smart Swap Suggestion</p>
                                 <div className="flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-6">
                                   <p className="text-base sm:text-lg md:text-xl font-bold text-white/90 italic">"{place.alternativePlace}"</p>
-                                  <button onClick={() => onSwitchPlan(day.dayNumber, place.name, place.alternativePlace)} className="group/btn relative overflow-hidden w-full sm:w-auto bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-blue-600/10 hover:from-blue-600/25 hover:via-purple-600/25 hover:to-blue-600/25 text-white/80 hover:text-white border border-white/10 hover:border-blue-400/30 px-6 sm:px-10 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-black text-[9px] sm:text-[10px] uppercase tracking-widest transition-all duration-500 active:scale-[0.97] shadow-lg hover:shadow-blue-500/20"><div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent translate-x-[-100%] group-hover/btn:translate-x-[100%] transition-transform duration-700"></div><span className="relative">Swap Plan</span></button>
+                                  <button onClick={() => onSwitchPlan(day.dayNumber, place.name, place.alternativePlace)} className="group/btn relative overflow-hidden w-full sm:w-auto bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-blue-600/10 hover:from-blue-600/25 hover:via-purple-600/25 hover:to-blue-600/25 text-white/80 hover:text-white border border-white/10 hover:border-blue-400/30 px-6 sm:px-10 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-black text-[9px] sm:text-[10px] uppercase tracking-widest whitespace-nowrap shrink-0 transition-all duration-500 active:scale-[0.97] shadow-lg hover:shadow-blue-500/20"><div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent translate-x-[-100%] group-hover/btn:translate-x-[100%] transition-transform duration-700"></div><span className="relative">Swap Plan</span></button>
                                 </div>
                               </div>
                             )}
