@@ -9,7 +9,6 @@
 
 import { useState } from 'react';
 import { generateItinerary } from '../services/gemini';
-// Added Compass and CheckCircle2 to the imports
 import {
   Sparkles,
   Map,
@@ -27,6 +26,9 @@ const interestOptions = [
   'Ayurveda', 'Houseboat', 'Adventure', 'Photography', 'Culture',
   'Foodie', 'Trekking', 'Shopping', 'History', 'Wellness', 'Water Sports'
 ];
+
+// Shared translucent input classes
+const inputBase = "w-full bg-transparent border border-white/10 hover:border-white/15 focus:border-emerald-500/40 rounded-xl md:rounded-2xl px-4 md:px-6 py-3 md:py-4 outline-none transition-all duration-300 text-white text-sm md:text-base font-medium placeholder:text-white/20 focus:shadow-[0_0_20px_rgba(16,185,129,0.06)] backdrop-blur-sm";
 
 export default function TripForm({ onItinerary, onLoading }) {
   const [formData, setFormData] = useState({
@@ -87,33 +89,33 @@ export default function TripForm({ onItinerary, onLoading }) {
     <div className="max-w-4xl mx-auto px-2 sm:px-4">
       <form
         onSubmit={handleSubmit}
-        className="relative bg-white/10 backdrop-blur-2xl border border-white/20 shadow-2xl rounded-[2rem] md:rounded-[3rem] p-5 md:p-12 text-white space-y-6 md:space-y-10 transition-all duration-500"
+        className="relative bg-white/[0.04] backdrop-blur-2xl border border-white/10 shadow-2xl rounded-[2rem] md:rounded-[3rem] p-5 md:p-12 text-white space-y-6 md:space-y-10 transition-all duration-500"
       >
 
-        {/* --- ROW 1: CORE ROUTE (RESPONSIVE) --- */}
+        {/* --- ROW 1: CORE ROUTE --- */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-8">
-          <div className="flex flex-col gap-2">
-            <label className="flex items-center gap-2 text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] ml-2 opacity-70 text-emerald-400">
+          <div className="flex flex-col gap-2.5">
+            <label className="flex items-center gap-2 text-[9px] md:text-[10px] font-black uppercase tracking-[0.25em] ml-1 text-emerald-400/80">
               <Navigation className="w-3 h-3" /> Departure Point
             </label>
             <input
               type="text"
               value={formData.origin}
               onChange={(e) => setFormData({ ...formData, origin: e.target.value })}
-              className="w-full bg-white/5 border border-white/10 rounded-xl md:rounded-2xl px-4 md:px-6 py-3 md:py-4 focus:ring-2 focus:ring-emerald-500/50 outline-none transition-all placeholder:text-white/20 text-sm md:text-lg"
+              className={inputBase}
               placeholder="e.g. Delhi"
               required
             />
           </div>
-          <div className="flex flex-col gap-2">
-            <label className="flex items-center gap-2 text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] ml-2 opacity-70 text-emerald-400">
+          <div className="flex flex-col gap-2.5">
+            <label className="flex items-center gap-2 text-[9px] md:text-[10px] font-black uppercase tracking-[0.25em] ml-1 text-emerald-400/80">
               <Map className="w-3 h-3" /> Anywhere in India
             </label>
             <input
               type="text"
               value={formData.destination}
               onChange={(e) => setFormData({ ...formData, destination: e.target.value })}
-              className="w-full bg-white/5 border border-white/10 rounded-xl md:rounded-2xl px-4 md:px-6 py-3 md:py-4 focus:ring-2 focus:ring-emerald-500/50 outline-none transition-all placeholder:text-white/20 text-sm md:text-lg"
+              className={inputBase}
               placeholder="e.g. Munnar"
               required
             />
@@ -122,29 +124,29 @@ export default function TripForm({ onItinerary, onLoading }) {
 
         {/* --- ROW 2: CALENDAR --- */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-8">
-          <div className="flex flex-col gap-2">
-             <label className="flex items-center gap-2 text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] ml-2 opacity-70 text-blue-400">
-                <Calendar className="w-3 h-3" /> Starting-Date
+          <div className="flex flex-col gap-2.5">
+             <label className="flex items-center gap-2 text-[9px] md:text-[10px] font-black uppercase tracking-[0.25em] ml-1 text-blue-400/80">
+                <Calendar className="w-3 h-3" /> Starting Date
              </label>
              <input
                type="date"
                min={today}
                value={formData.startDate}
                onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-               className="w-full bg-white/5 border border-white/10 rounded-xl md:rounded-2xl px-4 md:px-6 py-3 md:py-4 outline-none text-white transition-all shadow-inner cursor-pointer text-sm"
+               className={`${inputBase} cursor-pointer`}
                required
              />
           </div>
-          <div className="flex flex-col gap-2">
-             <label className="flex items-center gap-2 text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] ml-2 opacity-70 text-blue-400">
-                <Calendar className="w-3 h-3" /> Ending-Date
+          <div className="flex flex-col gap-2.5">
+             <label className="flex items-center gap-2 text-[9px] md:text-[10px] font-black uppercase tracking-[0.25em] ml-1 text-blue-400/80">
+                <Calendar className="w-3 h-3" /> Ending Date
              </label>
              <input
                type="date"
                min={formData.startDate || today}
                value={formData.endDate}
                onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-               className="w-full bg-white/5 border border-white/10 rounded-xl md:rounded-2xl px-4 md:px-6 py-3 md:py-4 outline-none text-white transition-all shadow-inner cursor-pointer text-sm"
+               className={`${inputBase} cursor-pointer`}
                required
              />
           </div>
@@ -152,8 +154,8 @@ export default function TripForm({ onItinerary, onLoading }) {
 
         {/* --- ROW 3: LOGISTICS --- */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-8">
-          <div className="flex flex-col gap-2">
-            <label className="flex items-center gap-2 text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] ml-2 opacity-70">
+          <div className="flex flex-col gap-2.5">
+            <label className="flex items-center gap-2 text-[9px] md:text-[10px] font-black uppercase tracking-[0.25em] ml-1 text-white/50">
                 <Users className="w-3 h-3" /> Number of People
             </label>
             <input
@@ -161,13 +163,13 @@ export default function TripForm({ onItinerary, onLoading }) {
               value={formData.travelers}
               onChange={(e) => setFormData({ ...formData, travelers: e.target.value })}
               placeholder="Total People"
-              className="w-full bg-white/5 border border-white/10 rounded-xl md:rounded-2xl px-4 md:px-6 py-3 md:py-4 outline-none placeholder:text-white/20 text-sm md:text-lg"
+              className={inputBase}
               min="1"
               required
             />
           </div>
-          <div className="flex flex-col gap-2">
-            <label className="flex items-center gap-2 text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] ml-2 opacity-70">
+          <div className="flex flex-col gap-2.5">
+            <label className="flex items-center gap-2 text-[9px] md:text-[10px] font-black uppercase tracking-[0.25em] ml-1 text-white/50">
                 <Wallet className="w-3 h-3" /> Custom Budget (₹)
             </label>
             <input
@@ -175,33 +177,34 @@ export default function TripForm({ onItinerary, onLoading }) {
               value={formData.budget}
               onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
               placeholder="e.g. 50000"
-              className="w-full bg-white/5 border border-white/10 rounded-xl md:rounded-2xl px-4 md:px-6 py-3 md:py-4 outline-none placeholder:text-white/20 text-sm md:text-lg font-mono"
+              className={inputBase}
               required
             />
           </div>
         </div>
 
         {/* --- ROW 3.5: TRANSPORT MODE --- */}
-        <div className="flex flex-col gap-2 w-full">
-             <label className="flex items-center gap-2 text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] ml-2 opacity-70 text-indigo-400">
+        <div className="flex flex-col gap-2.5 w-full">
+             <label className="flex items-center gap-2 text-[9px] md:text-[10px] font-black uppercase tracking-[0.25em] ml-1 text-indigo-400/80">
                 <Navigation className="w-3 h-3" /> Global Transit Mode (Optional)
              </label>
              <select
                value={formData.transportMode}
                onChange={(e) => setFormData({ ...formData, transportMode: e.target.value })}
-               className="w-full bg-white/5 border border-white/10 rounded-xl md:rounded-2xl px-4 md:px-6 py-3 md:py-4 focus:ring-2 focus:ring-emerald-500/50 outline-none transition-all placeholder:text-white/20 text-sm md:text-lg text-white appearance-none cursor-pointer"
+               className={`${inputBase} appearance-none cursor-pointer`}
+               style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.3)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 16px center' }}
              >
-               <option value="" className="bg-slate-900 text-white">Any Mode (Optimal)</option>
-               <option value="Flight" className="bg-slate-900 text-white"> Flight</option>
-               <option value="Train" className="bg-slate-900 text-white"> Train</option>
-               <option value="Bus" className="bg-slate-900 text-white"> Bus</option>
-               <option value="Car" className="bg-slate-900 text-white"> Private Car</option>
+               <option value="" className="bg-[#0c1425] text-white">Any Mode (Optimal)</option>
+               <option value="Flight" className="bg-[#0c1425] text-white">Flight</option>
+               <option value="Train" className="bg-[#0c1425] text-white">Train</option>
+               <option value="Bus" className="bg-[#0c1425] text-white">Bus</option>
+               <option value="Car" className="bg-[#0c1425] text-white">Private Car</option>
              </select>
         </div>
 
         {/* --- ROW 4: INTERESTS --- */}
         <div className="space-y-4">
-          <p className="text-center text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] opacity-40 italic">
+          <p className="text-center text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-white/30 italic">
             Tailor the Experience (Optional)
           </p>
           <div className="flex flex-wrap justify-center gap-2 md:gap-3 max-w-3xl mx-auto">
@@ -210,10 +213,10 @@ export default function TripForm({ onItinerary, onLoading }) {
                 key={interest}
                 type="button"
                 onClick={() => handleInterestToggle(interest)}
-                className={`px-3 md:px-6 py-1.5 md:py-2 rounded-full border transition-all text-[8px] md:text-[10px] font-black uppercase tracking-widest ${
+                className={`px-3 md:px-6 py-1.5 md:py-2 rounded-full border transition-all duration-300 text-[8px] md:text-[10px] font-black uppercase tracking-widest ${
                   formData.interests.includes(interest)
-                  ? 'bg-emerald-500 border-emerald-400 shadow-lg scale-105 text-white'
-                  : 'bg-white/5 border-white/10 text-white/40 hover:bg-white/10'
+                  ? 'bg-emerald-500/20 border-emerald-400/50 shadow-lg shadow-emerald-500/10 scale-105 text-emerald-400'
+                  : 'bg-transparent border-white/10 text-white/30 hover:bg-white/5 hover:text-white/50 hover:border-white/20'
                 }`}
               >
                 {interest}
@@ -222,7 +225,7 @@ export default function TripForm({ onItinerary, onLoading }) {
           </div>
         </div>
 
-        {/* --- UPGRADED NEURAL ODYSSEY BUTTON --- */}
+        {/* --- NEURAL ODYSSEY BUTTON --- */}
         <div className="pt-6 relative group">
           <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 via-blue-500 to-indigo-600 rounded-[2rem] md:rounded-[3rem] blur-xl opacity-20 group-hover:opacity-60 transition duration-1000 group-hover:duration-200"></div>
 

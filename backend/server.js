@@ -109,7 +109,7 @@ const generateWithRetry = async (modelName, config, prompt, retries = 3, delay =
     } catch (error) {
       attempt++;
 
-      const isQuotaError = error.message.includes("429") || error.message.includes("quota");
+      const isQuotaError = error.message.includes("429") || error.message.includes("quota") || error.message.includes("RESOURCE_EXHAUSTED") || error.message.includes("rate limit") || error.message.includes("exhausted");
       const isOverloaded = error.message.includes("503") || error.message.includes("overloaded");
 
       if (isQuotaError) {
@@ -117,7 +117,8 @@ const generateWithRetry = async (modelName, config, prompt, retries = 3, delay =
           const prevIndex = currentKeyIndex;
           currentKeyIndex = (currentKeyIndex + 1) % apiKeys.length;
           console.log(`⚠️ Quota on Key ${prevIndex + 1}/${apiKeys.length}. Rotating to Key ${currentKeyIndex + 1}...`);
-          delay = 1000;
+          // Small delay to let the new key's connection initialize
+          await new Promise((res) => setTimeout(res, 500));
         } else {
           console.log(`⚠️ Quota reached (single key). Retrying in ${delay}ms... (${attempt}/${maxAttempts})`);
           await new Promise((res) => setTimeout(res, delay));
@@ -187,6 +188,26 @@ const cleanAndParseJSON = (text) => {
       }
     }
 
+    // --- Deduplication Guard ---
+    // Scan all place names across all days and rename duplicates.
+    if (parsedData.days && Array.isArray(parsedData.days)) {
+      const seenPlaces = new Map();
+      parsedData.days.forEach((day) => {
+        if (day.places && Array.isArray(day.places)) {
+          day.places = day.places.filter((place) => {
+            const key = (place.name || "").trim().toLowerCase();
+            if (!key) return true;
+            if (seenPlaces.has(key)) {
+              console.log(`🛡️ Dedup Guard: Removed duplicate place "${place.name}" from Day ${day.dayNumber}.`);
+              return false;
+            }
+            seenPlaces.set(key, true);
+            return true;
+          });
+        }
+      });
+    }
+
     return parsedData;
   } catch (error) {
     console.error("❌ JSON Extraction Failed. Raw Output:", text);
@@ -205,14 +226,19 @@ app.post("/api/generate-itinerary", async (req, res) => {
     const destination = formData.destination ? formData.destination.trim() : "";
     const transportMode = formData.transportMode ? formData.transportMode.trim() : "Optimal";
 
-    // --- Step 1: Geographical Validation (India Geofence) ---
+    // --- Step 1: Geographical Validation (India Geofence) --- uses retry/rotation
     console.log(`🔍 Verifying destination: ${destination}`);
-    const validatorModel = getActiveModel("gemini-2.5-flash-lite");
     const verifyPrompt = `Is the location "${destination}" situated within the country of INDIA?
     Reply strictly with only the word "TRUE" or "FALSE". If it's outside India, reply "FALSE".`;
 
-    const checkResult = await validatorModel.generateContent(verifyPrompt);
-    const isIndia = checkResult.response.text().trim().toUpperCase().includes("TRUE");
+    let isIndia = false;
+    try {
+      const verifyResponse = await generateWithRetry("gemini-2.5-flash-lite", {}, verifyPrompt, 2, 1000);
+      isIndia = verifyResponse.trim().toUpperCase().includes("TRUE");
+    } catch (verifyErr) {
+      console.error("⚠️ Geofence check failed, allowing request through:", verifyErr.message);
+      isIndia = true; // fail-open so user isn't blocked by quota on validation
+    }
 
     if (!isIndia) {
       return res.status(400).json({
@@ -255,6 +281,7 @@ app.post("/api/generate-itinerary", async (req, res) => {
     5. budgetAnalysis: Split ₹${formData.budget} logically. Total and perPerson must be simple strings (e.g., "₹50,000").
     6. weather icon: Use ONLY one real emoji (☀️, 🌧️, ☁️, 🌫️, 🌩️).
     7. DATA PRECISION: Ensure 'coordinates' are as accurate as possible for the specific landmark.
+    8. UNIQUE PLACES (CRITICAL): Every single place across ALL days MUST be unique. NEVER repeat the same place on different days. If you run out of well-known spots, suggest hidden gems, local markets, nature trails, viewpoints, temples, cultural workshops, or artisan villages. Variety is paramount.
 
     JSON FORMAT (MANDATORY):
     {
@@ -266,7 +293,7 @@ app.post("/api/generate-itinerary", async (req, res) => {
       "days": [{
         "dayNumber": 1, "date": "...", "cityLocation": "...",
         "weather": { "temp": "...", "condition": "...", "icon": "emoji", "advice": "..." },
-        "dailyDose": { "recipe": "...", "movie": "...", "game": "..." },
+        "nearbyHighlights": { "parks": "Name or omit if none", "theatres": "Name or omit if none", "shopping": "Name or omit if none", "viewpoint": "Name or omit if none" },
         "places": [{
             "name": "...",
             "coordinates": { "lat": 0.0, "lng": 0.0 },
@@ -341,7 +368,7 @@ app.post("/api/chat", async (req, res) => {
         return res.json({ reply: chatResponse.text() });
       } catch (err) {
         lastError = err;
-        const isQuotaError = err.message.includes("429") || err.message.includes("quota");
+        const isQuotaError = err.message.includes("429") || err.message.includes("quota") || err.message.includes("RESOURCE_EXHAUSTED") || err.message.includes("rate limit") || err.message.includes("exhausted");
         if (isQuotaError && apiKeys.length > 1) {
           const prevIndex = currentKeyIndex;
           currentKeyIndex = (currentKeyIndex + 1) % apiKeys.length;
