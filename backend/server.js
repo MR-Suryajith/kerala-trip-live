@@ -283,21 +283,20 @@ app.post("/api/generate-itinerary", async (req, res) => {
     }
 
     // --- Step 3: Construct the AI Prompt ---
-    const prompt = `Act as an expert Indian Travel Guide, Logistics Analyst, and Financial Planner.
-    Generate a ${formData.days}-day travel plan from ${formData.origin} to ${destination}, India.
+    const prompt = `Act as an expert Indian Travel Guide, Logistics Analyst, and Transport Director.
+    Generate a highly realistic ${formData.days}-day road-trip/travel plan from ${formData.origin} to ${destination}, India.
     Travelers: ${formData.travelers} | ${budgetInstruction} | Preferred Global Transport Mode: ${transportMode} | Interests: ${formData.interests.join(", ")} ${modificationNote}
 
     STRICT OUTPUT RULES:
-    1. INITIAL TRANSIT (${formData.origin} to nearest hub for ${destination}): YOU MUST use the preferred mode "${transportMode}" if possible.
-       - The 'duration' MUST be realistic for this specific mode (e.g. Flight is ~2-4 hrs, Train might be 20-40+ hrs depending on distance).
+    1. STRICT TIMELINES: You MUST use exact, chronological AM/PM timestamps for every \`place.time\` (e.g., "06:00 AM", "09:30 AM"). Do NOT use vague terms like "Morning" or "Afternoon".
+    2. TRANSIT & PITSTOPS: If there is a long drive/train between cities, you MUST schedule realistic pitstops (e.g., "Breakfast on the way at X", "Lunch at Y") and include them as items in the \`places\` array with their own timestamps.
+    3. INITIAL TRANSIT (${formData.origin} to nearest hub for ${destination}): YOU MUST use the preferred mode "${transportMode}" if possible.
        - STILL GENERATE the plan using this mode regardless of budget tier.
-    2. BUDGET WARNINGS: If the budget tier seems too low for the trip (e.g., Budget tier for a luxury destination), you MUST put a funny warning inside \`budgetAnalysis.breakdown.FinancialWarning\`. You are FORBIDDEN from putting budget warnings in \`weatherAndFestivalAdvice\`.
-    3. LOCAL TRANSIT (between daily places): Do NOT show flight times. Show ONLY ground travel (distance + driving/walking time).
-    4. localPulse: Identify real festivals/events in ${destination} on these dates. MUST be an array of simple strings.
-    5. budgetAnalysis: Calculate realistic total based on the "${tier.label}" tier for ${formData.travelers} travelers over ${formData.days} days. Total and perPerson must be simple strings (e.g., "₹50,000").
-    6. weather icon: Use ONLY one real emoji (☀️, 🌧️, ☁️, 🌫️, 🌩️).
-    7. DATA PRECISION: Ensure 'coordinates' are as accurate as possible for the specific landmark.
-    8. UNIQUE PLACES (CRITICAL): Every single place across ALL days MUST be unique. NEVER repeat the same place on different days. If you run out of well-known spots, suggest hidden gems, local markets, nature trails, viewpoints, temples, cultural workshops, or artisan villages. Variety is paramount.
+    4. BUDGET WARNINGS: If the budget tier seems too low for the trip, put a funny warning inside \`budgetAnalysis.breakdown.FinancialWarning\`. You are FORBIDDEN from putting budget warnings in \`weatherAndFestivalAdvice\`.
+    5. LOCAL TRANSIT: Do NOT show flight times between local daily places. Show ONLY ground travel (distance + driving/walking time).
+    6. OPTIONAL DETOURS: If a specific viewpoint or activity requires a long detour that might be skipped due to time/traffic, set \`isOptional: true\` for that place. Otherwise, set it to \`false\`.
+    7. localPulse: Identify real festivals/events in ${destination} on these dates. MUST be an array of simple strings.
+    8. UNIQUE PLACES (CRITICAL): Every single place across ALL days MUST be unique. NEVER repeat the same place.
 
     JSON FORMAT (MANDATORY):
     {
@@ -307,7 +306,7 @@ app.post("/api/generate-itinerary", async (req, res) => {
       "arrivalLogistics": { "from": "Hub", "to": "First Spot", "distance": "km", "duration": "..." },
       "weatherAndFestivalAdvice": "Describe ONLY the weather, temperature, and clothing to pack for ${formData.startDate}. ABSOLUTELY NO FINANCIAL OR BUDGET TALK.",
       "days": [{
-        "dayNumber": 1, "date": "...", "cityLocation": "...",
+        "dayNumber": 1, "date": "...", "cityLocation": "...", "drivingRoute": "Actual cities passed through today, e.g. Aluva -> Thrissur -> Palakkad -> Coonoor",
         "weather": { "temp": "...", "condition": "...", "icon": "emoji", "advice": "..." },
         "nearbyHighlights": { "parks": "Name or omit if none", "theatres": "Name or omit if none", "shopping": "Name or omit if none", "viewpoint": "Name or omit if none" },
         "places": [{
@@ -315,7 +314,8 @@ app.post("/api/generate-itinerary", async (req, res) => {
             "coordinates": { "lat": 0.0, "lng": 0.0 },
             "crowdAnalysis": { "peakHours": "...", "occupancy": 80, "status": "Busy", "waitFactor": "20 mins", "trend": "rising" },
             "rank": 9.5,
-            "time": "...",
+            "time": "06:00 AM",
+            "isOptional": false,
             "trafficStatus": "...",
             "distanceFromPrevious": "...",
             "travelTimeFromPrevious": "...",

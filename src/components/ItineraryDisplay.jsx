@@ -22,7 +22,7 @@ import {
   Navigation, Clock, CheckCircle2,
   Share2, Wallet, Users, TrendingUp, Info,
   Trees, Clapperboard, ShoppingBag, Eye, MapPin, Copy, Send, Twitter, Lightbulb,
-  Backpack, X, Shirt, Heart, FileText, Loader2, Check
+  Backpack, X, Shirt, Heart, FileText, Loader2, Check, AlertCircle, Map
 } from 'lucide-react';
 
 export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
@@ -510,6 +510,11 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
                   <div>
                     <p className="text-blue-400 text-[8px] sm:text-[9px] md:text-[10px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em]">{day.date}</p>
                     <h4 className="text-xl sm:text-2xl md:text-4xl font-black tracking-tighter">{day.cityLocation}</h4>
+                    {day.drivingRoute && (
+                      <p className="mt-1 sm:mt-2 text-[8px] sm:text-[10px] md:text-xs font-bold text-white/50 uppercase tracking-widest flex items-center gap-1.5 sm:gap-2">
+                        <Map className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-400" /> Route: {day.drivingRoute}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="bg-white/5 px-4 py-2 sm:px-5 sm:py-3 md:px-6 md:py-4 rounded-xl sm:rounded-2xl md:rounded-3xl border border-white/10 flex items-center gap-3 sm:gap-4">
@@ -566,7 +571,14 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
                           </div>
 
                           <div className="flex-1 min-w-0 pl-0 md:pl-8 lg:pl-12 border-t md:border-t-0 md:border-l border-white/5 pt-6 md:pt-0 mt-2 md:mt-0">
-                            <h5 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-white mb-3 sm:mb-4 md:mb-6 tracking-tight leading-tight group-hover:text-blue-300 transition-all break-words">{place.name}</h5>
+                            <div className="flex flex-col items-start gap-2 mb-3 sm:mb-4 md:mb-6">
+                              {place.isOptional && (
+                                <span className="inline-flex items-center gap-1.5 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[8px] sm:text-[9px] font-black uppercase tracking-[0.2em] shadow-[0_0_15px_rgba(245,158,11,0.15)]">
+                                  <AlertCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Optional Detour
+                                </span>
+                              )}
+                              <h5 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-white tracking-tight leading-tight group-hover:text-blue-300 transition-all break-words">{place.name}</h5>
+                            </div>
 
                             {/* CROWD ANALYZER */}
                             <CrowdAnalyzer analysis={place.crowdAnalysis} />
@@ -651,19 +663,17 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
             </div>
 
             {/* Financial Warning — Isolated Card */}
-            {itinerary.budgetAnalysis?.breakdown && Object.entries(itinerary.budgetAnalysis.breakdown)
-              .filter(([key]) => key.toLowerCase().includes('financial') || key.toLowerCase().includes('warning'))
-              .map(([key, val]) => (
-                <div key={key} className="mt-5 sm:mt-8 bg-gradient-to-r from-amber-500/10 to-orange-500/10 backdrop-blur-xl border border-amber-500/20 rounded-xl sm:rounded-[1.5rem] p-4 sm:p-6 md:p-8 shadow-xl">
+            {itinerary.budgetAnalysis?.breakdown?.FinancialWarning && (
+                <div className="mt-5 sm:mt-8 bg-gradient-to-r from-amber-500/10 to-orange-500/10 backdrop-blur-xl border border-amber-500/20 rounded-xl sm:rounded-[1.5rem] p-4 sm:p-6 md:p-8 shadow-xl">
                   <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
                     <div className="bg-amber-400/20 p-2 sm:p-2.5 rounded-lg sm:rounded-xl">
                       <Info className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
                     </div>
                     <span className="text-amber-400 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.3em]">Financial Advisor Note</span>
                   </div>
-                  <p className="text-amber-50/80 text-xs sm:text-sm md:text-base leading-relaxed italic">{safeRender(val)}</p>
+                  <p className="text-amber-50/80 text-xs sm:text-sm md:text-base leading-relaxed italic">{safeRender(itinerary.budgetAnalysis.breakdown.FinancialWarning)}</p>
                 </div>
-            ))}
+            )}
           </div>
         </section>
 
