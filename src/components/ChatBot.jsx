@@ -165,9 +165,11 @@ export default function ChatBot({ itinerary }) {
             />
             <button
               onClick={() => handleSend()}
-              disabled={loading}
-              className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-lg active:scale-90 border border-white/10 ${
-                loading ? 'bg-slate-800' : 'bg-emerald-600 hover:bg-emerald-500'
+              disabled={loading || !input.trim()}
+              className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-lg border border-white/10 ${
+                loading || !input.trim()
+                  ? 'bg-slate-800 opacity-50 cursor-not-allowed'
+                  : 'bg-emerald-600 hover:bg-emerald-500 active:scale-90'
               }`}
             >
               {loading ? (

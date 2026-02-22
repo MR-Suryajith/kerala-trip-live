@@ -17,12 +17,14 @@ import jsPDF from 'jspdf';
 import CrowdAnalyzer from './CrowdAnalyzer';
 import SurvivalGrid from './SurvivalGrid';
 import BookingHub from './BookingHub';
+import WeatherWidget from './WeatherWidget';
 import {
   Download, RefreshCw, Zap, Wind,
   Navigation, Clock, CheckCircle2,
   Share2, Wallet, Users, TrendingUp, Info,
   Trees, Clapperboard, ShoppingBag, Eye, MapPin, Copy, Send, Twitter, Lightbulb,
-  Backpack, X, Shirt, Heart, FileText, Loader2, Check, AlertCircle, Map, ArrowUp, ArrowDown
+  Backpack, X, Shirt, Heart, FileText, Loader2, Check, AlertCircle, Map, ArrowUp, ArrowDown,
+  Sun, CloudSun, CloudRain, Snowflake, Thermometer
 } from 'lucide-react';
 
 export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
@@ -32,7 +34,10 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
   const [showPackingList, setShowPackingList] = useState(false);
   const [packingData, setPackingData] = useState(null);
   const [packingLoading, setPackingLoading] = useState(false);
+  const [packingError, setPackingError] = useState(null);
   const [checkedItems, setCheckedItems] = useState({});
+  const [bookingDate, setBookingDate] = useState(null);  // Fix #10
+  const [copyFeedback, setCopyFeedback] = useState(false); // Fix #9: track which day's date to pass
 
   const PACKING_API = window.location.hostname === 'localhost'
     ? 'http://localhost:5000/api/packing-list'
@@ -50,6 +55,7 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
     if (packingData) { setShowPackingList(true); return; }
     setShowPackingList(true);
     setPackingLoading(true);
+    setPackingError(null);
     try {
       const activities = itinerary.days.flatMap(d => d.places.map(p => p.name)).join(', ');
       const weather = itinerary.days[0]?.weather?.condition || itinerary.seasonalNote || '';
@@ -69,8 +75,8 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
       setPackingData(data);
     } catch (err) {
       console.error('Packing list error:', err);
-      alert('Could not generate packing list. Please try again.');
-      setShowPackingList(false);
+      // Fix #9: Use inline error state instead of blocking alert()
+      setPackingError('Could not generate packing list. Please try again.');
     } finally {
       setPackingLoading(false);
     }
@@ -162,8 +168,12 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(buildPlainText());
-      alert('Trip plan copied! Paste it anywhere — Instagram, notes, or messages.');
-    } catch { alert('Could not copy. Please try again.'); }
+      // Fix #9: Use inline feedback instead of alert()
+      setCopyFeedback(true);
+      setTimeout(() => setCopyFeedback(false), 3000);
+    } catch {
+      console.error('Could not copy to clipboard');
+    }
     setShowShareMenu(false);
   };
 
@@ -385,6 +395,11 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent translate-x-[-100%] group-hover/btn:translate-x-[100%] transition-transform duration-700"></div>
             <Download className="relative w-3.5 h-3.5 sm:w-4 sm:h-4" /> <span className="relative">{isGenerating ? 'Generating...' : 'Export PDF'}</span>
           </button>
+
+          {/* Fix #9: Inline copy feedback */}
+          {copyFeedback && (
+            <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest animate-pulse ml-2">Copied!</span>
+          )}
         </div>
       </nav>
 
@@ -444,7 +459,7 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
 
             {/* Live Travel Intel — Premium CTA inside transit hub */}
             <button
-              onClick={() => setShowBooking(true)}
+              onClick={() => { setBookingDate(itinerary.days?.[0]?.date); setShowBooking(true); }}
               className="group mt-5 sm:mt-6 w-full relative overflow-hidden bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-blue-600/10 hover:from-blue-600/25 hover:via-purple-600/25 hover:to-blue-600/25 border border-white/10 hover:border-blue-400/30 px-4 sm:px-5 py-3 sm:py-4 rounded-xl sm:rounded-2xl transition-all duration-500 active:scale-[0.97] shadow-lg hover:shadow-blue-500/20"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
@@ -502,8 +517,8 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
         {showBooking && (
           <BookingHub
             logistics={itinerary.initialLogistics}
-            destination={itinerary.days?.[0]?.cityLocation || ''}
-            startDate={itinerary.days?.[0]?.date || ''}
+            destination={itinerary.days?.find(d => d.date === bookingDate)?.cityLocation || itinerary.days?.[0]?.cityLocation || ''}
+            startDate={bookingDate || itinerary.days?.[0]?.date || ''}
             travelers={1}
             onClose={() => setShowBooking(false)}
           />
@@ -531,12 +546,12 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
                     )}
                   </div>
                 </div>
-                <div className="bg-white/5 px-4 py-2 sm:px-5 sm:py-3 md:px-6 md:py-4 rounded-xl sm:rounded-2xl md:rounded-3xl border border-white/10 flex items-center gap-3 sm:gap-4">
-                   <span className="text-2xl sm:text-3xl md:text-4xl">{day.weather?.icon || "☀️"}</span>
-                   <div className="text-right">
-                     <p className="text-lg sm:text-xl md:text-2xl font-black tracking-tighter">{day.weather?.temp}</p>
-                     <p className="text-[7px] sm:text-[8px] md:text-[9px] font-black uppercase text-white/40 tracking-widest">{day.weather?.condition}</p>
-                   </div>
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <WeatherWidget
+                    lat={day.places?.[0]?.coordinates?.lat || 10.85}
+                    lon={day.places?.[0]?.coordinates?.lng || 76.27}
+                    targetDate={day.date}
+                  />
                 </div>
               </div>
 
@@ -561,14 +576,23 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
                       <div key={pIdx} className="group relative">
                         <div className="flex flex-col md:flex-row gap-4 sm:gap-6 md:gap-12">
 
-                          {/* TIME & TRAFFIC SECTION */}
+                          {/* SEQUENCE & TRAFFIC SECTION */}
                           <div className="w-full md:w-32 lg:w-40 shrink-0 flex flex-col gap-3 sm:gap-4 items-start">
                              <div className="w-full min-w-0">
                                <div className="flex items-center gap-1.5 sm:gap-2 text-blue-400 mb-1 sm:mb-2">
-                                  <Clock className="w-3 h-3 sm:w-4 sm:h-4 animate-pulse" />
-                                  <span className="text-[9px] sm:text-[10px] md:text-[11px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em]">Arrival</span>
+                                  <MapPin className="w-3 h-3 sm:w-4 sm:h-4 animate-bounce" />
+                                  <span className="text-[9px] sm:text-[10px] md:text-[11px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em]">Stop {pIdx + 1}</span>
                                </div>
-                               <p className="text-xl sm:text-2xl md:text-3xl font-black text-white tracking-tight leading-tight break-words">{place.time}</p>
+                               {/* Replaced strict time with an animated arrival badge to prevent chronological timeline map errors */}
+                               <div className="mt-1 flex items-center gap-2.5 bg-blue-500/10 border border-blue-500/20 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl w-fit shadow-lg">
+                                 <span className="relative flex h-2 w-2 sm:h-2.5 sm:w-2.5">
+                                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                                   <span className="relative inline-flex rounded-full h-2 w-2 sm:h-2.5 sm:w-2.5 bg-blue-500"></span>
+                                 </span>
+                                 <span className="text-[9px] sm:text-[10px] font-black tracking-[0.2em] uppercase text-white/90">
+                                   Arriving
+                                 </span>
+                               </div>
                              </div>
                              <div className="flex flex-col gap-2 sm:gap-3 md:gap-4 items-start w-full">
                                <div className={`inline-flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[8px] sm:text-[9px] font-black ${traffic.bg} ${traffic.color} border border-white/5`}>
@@ -610,7 +634,13 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
                             />
 
                             {/* PLAN B SWAP */}
-                            {place.alternativePlace && (
+                            {place.alternativePlace &&
+                             place.alternativePlace.trim() !== "" &&
+                             !place.alternativePlace.toLowerCase().includes('omit') &&
+                             !place.alternativePlace.toLowerCase().includes('none') &&
+                             !place.alternativePlace.toLowerCase().includes('n/a') &&
+                             // Hide swap UI for generic stays and dining
+                             !['hotel', 'resort', 'stay', 'lodge', 'camp', 'breakfast', 'lunch', 'dinner', 'restaurant', 'cafe', 'eatery', 'dhaba', 'check', 'retreat', 'homestay', 'airport', 'station', 'bus', 'transit'].some(term => (place.name || '').toLowerCase().includes(term)) && (
                               <div className="mt-6 sm:mt-8 bg-white/5 border border-white/10 p-4 sm:p-6 md:p-8 rounded-2xl sm:rounded-[2rem] md:rounded-[2.5rem] shadow-xl group/alt hover:bg-slate-900/50 transition-all">
                                 <p className="text-yellow-500 text-[8px] sm:text-[9px] md:text-[10px] font-black uppercase tracking-widest mb-3 sm:mb-4 flex items-center gap-2"><RefreshCw className="w-3 h-3" /> Smart Swap Suggestion</p>
                                 <div className="flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-6">

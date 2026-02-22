@@ -26,16 +26,20 @@ const MapComponent = memo(function MapComponent({ origin, destination, isFlight 
   // Select Google Maps routing flag based on transport mode
   const getDirFlag = () => {
     const m = mode.toLowerCase();
+    if (m.includes('flight')) return '';  // Fix #1: Empty flag defaults to aerial routing, avoiding driving route crashes
     if (m.includes('train')) return 'r';  // r = transit/rail
     if (m.includes('bus'))   return 'r';  // r = transit covers bus too
     return 'd';                            // d = driving (car, default)
   };
 
   const zoom = 8;
-  const mapUrl = `https://maps.google.com/maps?saddr=${start}&daddr=${end}&dirflg=${getDirFlag()}&output=embed&z=${zoom}`;
+  const dirFlag = getDirFlag();
+  const mapUrl = `https://maps.google.com/maps?saddr=${start}&daddr=${end}${dirFlag ? `&dirflg=${dirFlag}` : ''}&output=embed&z=${zoom}`;
 
   // External navigation link
-  const externalMapUrl = `https://www.google.com/maps/dir/?api=1&origin=${start}&destination=${end}&travelmode=${mode.toLowerCase().includes('train') ? 'transit' : 'driving'}`;
+  const m = mode.toLowerCase();
+  const travelMode = m.includes('flight') ? '' : (m.includes('train') || m.includes('bus') ? '&travelmode=transit' : '&travelmode=driving');
+  const externalMapUrl = `https://www.google.com/maps/dir/?api=1&origin=${start}&destination=${end}${travelMode}`;
 
   return (
     <div className="w-full mt-3 group relative">

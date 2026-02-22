@@ -23,7 +23,11 @@ export const fetchNearbyEssentials = async (lat, lon, type = "hospital") => {
   )}`;
 
   try {
-    const response = await fetch(url);
+    // Fix #8: Add 5-second timeout so SurvivalGrid doesn't hang on slow networks
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeout);
     const data = await response.json();
     return data.elements.map((e) => ({
       name: e.tags?.name || `Unnamed ${type}`,
@@ -32,7 +36,11 @@ export const fetchNearbyEssentials = async (lat, lon, type = "hospital") => {
       distance: "Within 2km",
     }));
   } catch (error) {
-    console.error("Overpass Error:", error);
+    if (error.name === "AbortError") {
+      console.warn("Overpass API timed out after 5s.");
+    } else {
+      console.error("Overpass Error:", error);
+    }
     return [];
   }
 };

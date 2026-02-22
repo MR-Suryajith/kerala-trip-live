@@ -44,7 +44,10 @@ export default function TripForm({ onItinerary, onLoading }) {
   });
 
   const [loading, setLoading] = useState(false);
-  const today = new Date().toISOString().split('T')[0];
+
+  // Fix #4: Use local timezone date (e.g. IST) instead of UTC toISOString()
+  // so users can't select "yesterday" if they log in at 2 AM in India.
+  const today = new Date().toLocaleDateString('en-CA'); // 'en-CA' forces YYYY-MM-DD format locally
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -161,10 +164,11 @@ export default function TripForm({ onItinerary, onLoading }) {
           <input
             type="number"
             value={formData.travelers}
-            onChange={(e) => setFormData({ ...formData, travelers: e.target.value })}
+            onChange={(e) => setFormData({ ...formData, travelers: Math.min(50, Math.max(1, parseInt(e.target.value) || 1)) })}
             placeholder="Total People"
             className={inputBase}
             min="1"
+            max="50"
             required
           />
         </div>

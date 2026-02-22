@@ -22,6 +22,7 @@
 
 const express = require("express");
 const cors = require("cors");
+const rateLimit = require("express-rate-limit");
 const {
   GoogleGenerativeAI,
   HarmCategory,
@@ -36,8 +37,33 @@ const app = express();
 // MIDDLEWARE CONFIGURATION
 // =============================================================================
 
-app.use(cors({ origin: "*" }));
+// Fix #1: Restrict CORS to known origins only
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:3001",
+  "https://sanchaara-ai.onrender.com",
+  "https://kerala-trip-live.netlify.app",
+];
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (same-origin, Postman, mobile apps)
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error(`CORS blocked for origin: ${origin}`));
+  },
+  credentials: true,
+}));
 app.use(express.json());
+
+// Fix #2: Rate limit AI generation and packing-list endpoints (15 req/min per IP)
+const generationLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 15,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests. Please wait a minute before trying again." },
+});
+app.use("/api/generate-itinerary", generationLimiter);
+app.use("/api/packing-list", generationLimiter);
 
 
 // =============================================================================
@@ -136,6 +162,25 @@ const generateWithRetry = async (modelName, config, prompt, retries = 3, delay =
   throw new Error("All API keys exhausted or servers at capacity. Please wait a moment.");
 };
 
+
+// =============================================================================
+// INPUT SANITIZER — Fix #3: Prevent Prompt Injection
+// =============================================================================
+
+/**
+ * Strips characters and phrases that could be used for prompt injection.
+ * @param   {string} input  Raw user input.
+ * @returns {string}        Sanitized input safe to embed in AI prompts.
+ */
+const sanitizeInput = (input) => {
+  if (!input || typeof input !== "string") return "";
+  return input
+    .replace(/[`{}\[\]]/g, "")                                           // strip JSON/code chars
+    .replace(/ignore all|forget|jailbreak|pretend|act as/gi, "")         // strip injection phrases
+    .trim()
+    .substring(0, 200);                                                   // cap length
+};
+
 /**
  * Extracts valid JSON from AI text output and applies post-processing.
  *
@@ -188,15 +233,22 @@ const cleanAndParseJSON = (text) => {
       }
     }
 
-    // --- Deduplication Guard ---
-    // Scan all place names across all days and rename duplicates.
+    // --- Deduplication Guard (Fix #2: Bypass generic terms) ---
+    // Scan all place names and remove exact duplicates, UNLESS they are generic meals/breaks.
     if (parsedData.days && Array.isArray(parsedData.days)) {
       const seenPlaces = new Map();
+      const genericTerms = ["breakfast", "lunch", "dinner", "check", "rest", "relax", "travel", "drive", "transit"];
+
       parsedData.days.forEach((day) => {
         if (day.places && Array.isArray(day.places)) {
           day.places = day.places.filter((place) => {
             const key = (place.name || "").trim().toLowerCase();
             if (!key) return true;
+
+            // Skip deduplication for generic transport/meal terms
+            const isGeneric = genericTerms.some(term => key.includes(term));
+            if (isGeneric) return true;
+
             if (seenPlaces.has(key)) {
               console.log(`🛡️ Dedup Guard: Removed duplicate place "${place.name}" from Day ${day.dayNumber}.`);
               return false;
@@ -206,6 +258,12 @@ const cleanAndParseJSON = (text) => {
           });
         }
       });
+    }
+
+    // --- Structural Schema Validation (Fix #3) ---
+    // Ensure the core days array exists to prevent React frontend crashes (.map is not a function)
+    if (!parsedData.days || !Array.isArray(parsedData.days) || parsedData.days.length === 0) {
+      throw new Error("AI returned JSON without a valid 'days' array.");
     }
 
     return parsedData;
@@ -223,8 +281,10 @@ const cleanAndParseJSON = (text) => {
 app.post("/api/generate-itinerary", async (req, res) => {
   try {
     const { formData } = req.body;
-    const destination = formData.destination ? formData.destination.trim() : "";
-    const transportMode = formData.transportMode ? formData.transportMode.trim() : "Optimal";
+    // Fix #3: Sanitize all user inputs to prevent prompt injection
+    const destination = sanitizeInput(formData.destination);
+    const transportMode = sanitizeInput(formData.transportMode) || "Optimal";
+    const originSafe = sanitizeInput(formData.origin);
 
     // --- Step 1: Geographical Validation (India Geofence) --- uses retry/rotation
     console.log(`🔍 Verifying destination: ${destination}`);
@@ -236,8 +296,11 @@ app.post("/api/generate-itinerary", async (req, res) => {
       const verifyResponse = await generateWithRetry("gemini-2.5-flash-lite", {}, verifyPrompt, 2, 1000);
       isIndia = verifyResponse.trim().toUpperCase().includes("TRUE");
     } catch (verifyErr) {
-      console.error("⚠️ Geofence check failed, allowing request through:", verifyErr.message);
-      isIndia = true; // fail-open so user isn't blocked by quota on validation
+      // Fix #4: Fail-closed — don't silently bypass validation
+      console.error("⚠️ Geofence check failed:", verifyErr.message);
+      return res.status(503).json({
+        error: "Location verification is temporarily unavailable. Please try again in a moment.",
+      });
     }
 
     if (!isIndia) {
@@ -284,8 +347,8 @@ app.post("/api/generate-itinerary", async (req, res) => {
 
     // --- Step 3: Construct the AI Prompt ---
     const prompt = `Act as an expert Indian Travel Guide, Logistics Analyst, and Transport Director.
-    Generate a highly realistic ${formData.days}-day road-trip/travel plan from ${formData.origin} to ${destination}, India.
-    Travelers: ${formData.travelers} | ${budgetInstruction} | Preferred Global Transport Mode: ${transportMode} | Interests: ${formData.interests.join(", ")} ${modificationNote}
+    Generate a highly realistic ${formData.days}-day road-trip/travel plan from ${originSafe} to ${destination}, India.
+    Travelers: ${formData.travelers} | ${budgetInstruction} | Preferred Global Transport Mode: ${transportMode} | Interests: ${formData.interests.map(sanitizeInput).join(", ")} ${modificationNote}
 
     STRICT OUTPUT RULES:
     1. STRICT TIMELINES & TRAVEL PHYSICS (CRITICAL): You MUST use exact, chronological AM/PM timestamps for every \`place.time\`.
@@ -308,10 +371,8 @@ app.post("/api/generate-itinerary", async (req, res) => {
       "budgetAnalysis": { "total": "₹...", "perPerson": "₹...", "breakdown": { "stay": "₹...", "food": "₹...", "transport": "₹...", "FinancialWarning": "Put your funny low-budget explanation here if needed!" } },
       "initialLogistics": { "from": "${formData.origin}", "to": "Nearest Hub", "mode": "...", "distance": "km", "duration": "..." },
       "arrivalLogistics": { "from": "Hub", "to": "First Spot", "distance": "km", "duration": "..." },
-      "weatherAndFestivalAdvice": "Describe ONLY the weather, temperature, and clothing to pack for ${formData.startDate}. ABSOLUTELY NO FINANCIAL OR BUDGET TALK.",
       "days": [{
         "dayNumber": 1, "date": "...", "cityLocation": "...", "drivingRoute": "Actual cities passed through today, e.g. Aluva -> Thrissur -> Palakkad -> Coonoor",
-        "weather": { "temp": "...", "condition": "...", "icon": "emoji", "advice": "..." },
         "nearbyHighlights": { "parks": "Name or omit if none", "theatres": "Name or omit if none", "shopping": "Name or omit if none", "viewpoint": "Name or omit if none" },
         "places": [{
             "name": "...",
@@ -393,6 +454,8 @@ app.post("/api/chat", async (req, res) => {
           const prevIndex = currentKeyIndex;
           currentKeyIndex = (currentKeyIndex + 1) % apiKeys.length;
           console.log(`⚠️ Chat: Quota on Key ${prevIndex + 1}. Rotating to Key ${currentKeyIndex + 1}...`);
+          // Fix #3: Small delay to let the new key's connection initialize
+          await new Promise((res) => setTimeout(res, 500));
         } else {
           throw err;
         }
@@ -424,6 +487,12 @@ app.post("/api/search-flights", async (req, res) => {
     const originCode = booking.resolveIATACode(origin);
     const destCode = booking.resolveIATACode(destination);
 
+    // Fix #5: Don't make API call with unknown codes
+    if (!originCode || !destCode) {
+      console.log(`⚠️ Flight Search skipped: Unknown IATA code for "${!originCode ? origin : destination}"`);
+      return res.json({ flights: [], error: `Airport not found for ${!originCode ? origin : destination}. Try a major city.` });
+    }
+
     console.log(`✈️ Flight Search: ${originCode} → ${destCode} on ${date}`);
     const flights = await booking.searchFlights(originCode, destCode, date, adults || 1);
     res.json({ flights });
@@ -441,6 +510,12 @@ app.post("/api/search-hotels", async (req, res) => {
   try {
     const { destination } = req.body;
     const cityCode = booking.resolveIATACode(destination);
+
+    // Fix #5: Don't make API call with unknown codes
+    if (!cityCode) {
+      console.log(`⚠️ Hotel Search skipped: Unknown IATA code for "${destination}"`);
+      return res.json({ hotels: [], error: `City not found in lookup: ${destination}` });
+    }
 
     console.log(`🏨 Hotel Search: ${cityCode}`);
     const hotels = await booking.searchHotels(cityCode);
@@ -470,6 +545,36 @@ app.post("/api/search-trains", async (req, res) => {
   }
 });
 
+
+// =============================================================================
+// API ENDPOINT: LIVE WEATHER PROXY
+// =============================================================================
+
+app.get("/api/weather", async (req, res) => {
+  try {
+    const { lat, lon } = req.query;
+    if (!lat || !lon) return res.status(400).json({ error: "Missing coordinates" });
+
+    const API_KEY = process.env.OPENWEATHER_API_KEY;
+    if (!API_KEY) return res.status(500).json({ error: "Weather API key not configured" });
+
+    // Fetch 5-day / 3-hour forecast data
+    const url = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&appid=${API_KEY}`;
+
+    // Fallback to cross-fetch or global fetch
+    const fetchMod = await import('node-fetch');
+    const fetchFunc = fetchMod.default || fetchMod;
+
+    const response = await fetchFunc(url);
+    if (!response.ok) throw new Error(`Weather API returned status: ${response.status}`);
+
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    console.error("❌ Weather API Error:", error.message);
+    res.status(500).json({ error: "Failed to fetch live weather data" });
+  }
+});
 
 // =============================================================================
 // API ENDPOINT: SMART PACKING LIST (Groq / Llama 3.3)

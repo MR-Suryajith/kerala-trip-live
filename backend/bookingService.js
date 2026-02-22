@@ -244,6 +244,7 @@ const getPopularTrains = (from, to) => {
 
   return trains.map((t) => ({
     ...t,
+    isLive: false,  // Fix #6: Flag as cached/fallback data so UI can show a badge
     bookingLink: "https://www.irctc.co.in/nget/train-search",
   }));
 };
@@ -294,22 +295,26 @@ const STATION_CODES = {
 
 /**
  * Resolves a city name to its IATA airport code.
+ * Returns null if the city is not in the known list (instead of guessing).
  * @param {string} cityName - City name (e.g., "Kochi").
- * @returns {string} IATA code (e.g., "COK").
+ * @returns {string|null} IATA code (e.g., "COK") or null.
  */
 const resolveIATACode = (cityName) => {
-  const normalized = cityName.toLowerCase().trim();
-  return CITY_CODES[normalized] || cityName.substring(0, 3).toUpperCase();
+  if (!cityName) return null;
+  const normalized = cityName.toLowerCase().trim().split(',')[0].trim();
+  return CITY_CODES[normalized] || null;  // Fix #5: Don't guess. Return null if unknown.
 };
 
 /**
  * Resolves a city name to its railway station code.
+ * Returns null if the city is not in the known list.
  * @param {string} cityName - City name (e.g., "Kochi").
- * @returns {string} Station code (e.g., "ERS").
+ * @returns {string|null} Station code (e.g., "ERS") or null.
  */
 const resolveStationCode = (cityName) => {
-  const normalized = cityName.toLowerCase().trim();
-  return STATION_CODES[normalized] || cityName.substring(0, 3).toUpperCase();
+  if (!cityName) return null;
+  const normalized = cityName.toLowerCase().trim().split(',')[0].trim();
+  return STATION_CODES[normalized] || null;  // Fix #5: Don't guess. Return null if unknown.
 };
 
 

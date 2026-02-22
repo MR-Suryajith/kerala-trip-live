@@ -34,12 +34,17 @@ export default function BookingHub({ logistics, destination, startDate, traveler
     const fetchData = async () => {
       setLoading(true);
       try {
+        // Fix #1: Flights and Trains must search the transit hub (logistics.to)
+        // because local towns (e.g., Munnar) don't have airports/stations.
+        // Hotels correctly search the local town (destination).
+        const travelHub = logistics?.to || destination;
+
         if (activeTab === "flights" && flights.length === 0) {
-          setFlights(await searchFlights(logistics?.from, destination, startDate, travelers));
+          setFlights(await searchFlights(logistics?.from, travelHub, startDate, travelers));
         } else if (activeTab === "hotels" && hotels.length === 0) {
           setHotels(await searchHotels(destination));
         } else if (activeTab === "trains" && trains.length === 0) {
-          setTrains(await searchTrains(logistics?.from, destination, startDate));
+          setTrains(await searchTrains(logistics?.from, travelHub, startDate));
         }
       } catch (err) { /* Silently fail — empty state handles it */ }
       finally { setLoading(false); }
