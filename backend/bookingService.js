@@ -272,6 +272,8 @@ const CITY_CODES = {
   "jodhpur": "JDH", "agra": "AGR", "dehradun": "DED", "shimla": "SLV",
   "manali": "KUU", "rishikesh": "DED", "mysore": "MYQ", "mysuru": "MYQ",
   "visakhapatnam": "VTZ", "vizag": "VTZ", "raipur": "RPR",
+  "ooty": "CJB", "udhagamandalam": "CJB", "munnar": "COK", "wayanad": "CCJ",
+  "varkala": "TRV", "alleppey": "COK", "kumarakom": "COK", "thekkady": "COK",
 };
 
 /**
@@ -291,6 +293,8 @@ const STATION_CODES = {
   "jodhpur": "JU", "agra": "AGC", "dehradun": "DDN", "shimla": "SML",
   "mysore": "MYS", "mysuru": "MYS", "visakhapatnam": "VSKP", "vizag": "VSKP",
   "raipur": "R", "ernakulam": "ERS",
+  "ooty": "UAM", "udhagamandalam": "UAM", "munnar": "AWY", "wayanad": "CLT",
+  "varkala": "VAK", "alleppey": "ALLP", "alappuzha": "ALLP", "kumarakom": "KTYM", "thekkady": "KTYM",
 };
 
 /**
