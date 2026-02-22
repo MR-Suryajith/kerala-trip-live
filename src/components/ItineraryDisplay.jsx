@@ -594,14 +594,17 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
                                  </span>
                                </div>
                              </div>
-                             <div className="flex flex-col gap-2 sm:gap-3 md:gap-4 items-start w-full">
-                               <div className={`inline-flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[8px] sm:text-[9px] font-black ${traffic.bg} ${traffic.color} border border-white/5`}>
-                                 <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-current"></span>
-                                 {traffic.label}
+                             <div className="flex flex-row md:flex-col gap-2 sm:gap-3 items-start w-full">
+                               <div className="bg-white/5 border border-white/10 rounded-lg sm:rounded-xl px-3 py-1.5 sm:px-4 sm:py-2 flex-1 md:w-full overflow-hidden">
+                                  <p className="text-[7px] sm:text-[8px] font-bold text-white/30 uppercase tracking-widest mb-1 sm:mb-1.5">Traffic</p>
+                                  <div className={`inline-flex items-center gap-1.5 sm:gap-2 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-md text-[8px] sm:text-[9px] font-black ${traffic.bg} ${traffic.color} border border-white/5`}>
+                                    <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-current shrink-0"></span>
+                                    <span className="truncate">{traffic.label}</span>
+                                  </div>
                                </div>
-                               <div className="bg-white/5 border border-white/10 rounded-lg sm:rounded-xl px-3 py-1.5 sm:px-4 sm:py-2">
-                                  <p className="text-[7px] sm:text-[8px] font-bold text-white/30 uppercase tracking-widest mb-0.5 sm:mb-1">Route</p>
-                                  <p className="text-[9px] sm:text-[10px] font-black text-green-400 whitespace-nowrap overflow-hidden text-ellipsis">
+                               <div className="bg-white/5 border border-white/10 rounded-lg sm:rounded-xl px-3 py-1.5 sm:px-4 sm:py-2 flex-1 md:w-full overflow-hidden">
+                                  <p className="text-[7px] sm:text-[8px] font-bold text-white/30 uppercase tracking-widest mb-1 sm:mb-1.5">Route</p>
+                                  <p className="text-[9px] sm:text-[10px] font-black text-green-400 whitespace-nowrap overflow-hidden text-ellipsis py-0.5 sm:py-1">
                                     {pIdx === 0 && dayIdx === 0 ? itinerary.arrivalLogistics.distance : (place.distanceFromPrevious || 'Local')}
                                   </p>
                                </div>
