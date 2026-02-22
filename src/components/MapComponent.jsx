@@ -6,10 +6,10 @@
  *               with a glassmorphism UI overlay and external navigation link.
  */
 
-import React from 'react';
+import React, { memo } from 'react';
 import { Map as MapIcon, ExternalLink, Navigation2 } from 'lucide-react';
 
-export default function MapComponent({ origin, destination, isFlight = false, mode = '' }) {
+const MapComponent = memo(function MapComponent({ origin, destination, isFlight = false, mode = '' }) {
   const start = encodeURIComponent(origin);
   const end = encodeURIComponent(destination);
 
@@ -76,7 +76,8 @@ export default function MapComponent({ origin, destination, isFlight = false, mo
           scrolling="no"
           marginHeight="0"
           marginWidth="0"
-          className="grayscale-[40%] contrast-[1.2] invert-[90%] hue-rotate-[190deg] brightness-[0.8] group-hover:grayscale-0 group-hover:invert-0 group-hover:hue-rotate-0 group-hover:brightness-100 transition-all duration-1000 ease-in-out scale-[1.02]"
+          loading="lazy"
+          className="w-full h-full border-0 opacity-70 group-hover:opacity-100 transition-opacity duration-500"
         ></iframe>
 
         {/* BOTTOM VIGNETTE (Makes text on map easier to read) */}
@@ -87,4 +88,6 @@ export default function MapComponent({ origin, destination, isFlight = false, mo
 
     </div>
   );
-}
+});
+
+export default MapComponent;

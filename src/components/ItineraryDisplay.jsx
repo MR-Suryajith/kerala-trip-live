@@ -22,7 +22,7 @@ import {
   Navigation, Clock, CheckCircle2,
   Share2, Wallet, Users, TrendingUp, Info,
   Trees, Clapperboard, ShoppingBag, Eye, MapPin, Copy, Send, Twitter, Lightbulb,
-  Backpack, X, Shirt, Heart, FileText, Loader2, Check, AlertCircle, Map
+  Backpack, X, Shirt, Heart, FileText, Loader2, Check, AlertCircle, Map, ArrowUp, ArrowDown
 } from 'lucide-react';
 
 export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
@@ -81,6 +81,14 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
     setCheckedItems(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const scrollToBottom = () => {
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+  };
+
   if (!itinerary || !itinerary.days || !itinerary.initialLogistics) return null;
 
   // --- HELPER: SAFE RENDERER (Prevents Object-as-child crash) ---
@@ -89,6 +97,12 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
     if (typeof data === 'string' || typeof data === 'number') return data;
     if (typeof data === 'object') return data.name || data.value || data.text || JSON.stringify(data);
     return "";
+  };
+
+  // --- HELPER: FORMAT PLACE NAME (Remove appended city/state for clean UI) ---
+  const formatPlaceName = (name) => {
+    if (!name) return "";
+    return name.split(',')[0].trim();
   };
 
   // --- SHARE TEXT BUILDER (WhatsApp markdown) ---
@@ -105,7 +119,7 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
       text += `\n*DAY ${day.dayNumber} — ${day.cityLocation}*\n`;
       text += `_${day.date || ''}_\n\n`;
       day.places.forEach(p => {
-        text += `  • *${p.name}*\n`;
+        text += `  • *${formatPlaceName(p.name)}*\n`;
         text += `    Arrive: ${p.time} | Traffic: ${p.trafficStatus || 'Normal'}\n`;
       });
 
@@ -215,7 +229,7 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
         doc.setTextColor(30, 30, 30);
         doc.setFont("helvetica", "bold");
         doc.setFontSize(10);
-        doc.text(place.name, 25, yPos);
+        doc.text(formatPlaceName(place.name), 25, yPos);
 
         doc.setFont("helvetica", "normal");
         doc.setFontSize(8);
@@ -577,7 +591,7 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
                                   <AlertCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Optional Detour
                                 </span>
                               )}
-                              <h5 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-white tracking-tight leading-tight group-hover:text-blue-300 transition-all break-words">{place.name}</h5>
+                              <h5 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-white tracking-tight leading-tight group-hover:text-blue-300 transition-all break-words">{formatPlaceName(place.name)}</h5>
                             </div>
 
                             {/* CROWD ANALYZER */}
@@ -784,6 +798,24 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
           </div>
         </div>
       )}
+
+      {/* FLOATING SCROLL CONTROLS */}
+      <div className="fixed bottom-6 right-6 z-[90] flex flex-col gap-2">
+        <button
+          onClick={scrollToTop}
+          className="w-10 h-10 sm:w-12 sm:h-12 bg-slate-900/80 hover:bg-slate-800 backdrop-blur-md rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.5)] border border-white/10 flex items-center justify-center text-white/70 hover:text-white hover:border-white/20 transition-all duration-300 active:scale-95 group"
+          title="Scroll to Top"
+        >
+          <ArrowUp className="w-5 h-5 group-hover:-translate-y-1 transition-transform" />
+        </button>
+        <button
+          onClick={scrollToBottom}
+          className="w-10 h-10 sm:w-12 sm:h-12 bg-slate-900/80 hover:bg-slate-800 backdrop-blur-md rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.5)] border border-white/10 flex items-center justify-center text-white/70 hover:text-white hover:border-white/20 transition-all duration-300 active:scale-95 group"
+          title="Scroll to Bottom"
+        >
+          <ArrowDown className="w-5 h-5 group-hover:translate-y-1 transition-transform" />
+        </button>
+      </div>
 
     </div>
   );

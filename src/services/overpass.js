@@ -26,7 +26,7 @@ export const fetchNearbyEssentials = async (lat, lon, type = "hospital") => {
     const response = await fetch(url);
     const data = await response.json();
     return data.elements.map((e) => ({
-      name: e.tags.name || `Unnamed ${type}`,
+      name: e.tags?.name || `Unnamed ${type}`,
       lat: e.lat || e.center?.lat,
       lon: e.lon || e.center?.lon,
       distance: "Within 2km",

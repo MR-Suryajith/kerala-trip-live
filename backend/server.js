@@ -288,15 +288,19 @@ app.post("/api/generate-itinerary", async (req, res) => {
     Travelers: ${formData.travelers} | ${budgetInstruction} | Preferred Global Transport Mode: ${transportMode} | Interests: ${formData.interests.join(", ")} ${modificationNote}
 
     STRICT OUTPUT RULES:
-    1. STRICT TIMELINES: You MUST use exact, chronological AM/PM timestamps for every \`place.time\` (e.g., "06:00 AM", "09:30 AM"). Do NOT use vague terms like "Morning" or "Afternoon".
-    2. TRANSIT & PITSTOPS: If there is a long drive/train between cities, you MUST schedule realistic pitstops (e.g., "Breakfast on the way at X", "Lunch at Y") and include them as items in the \`places\` array with their own timestamps.
+    1. STRICT TIMELINES & TRAVEL PHYSICS (CRITICAL): You MUST use exact, chronological AM/PM timestamps for every \`place.time\`.
+       - Account for real-world travel time in India! Average highway speed is ~60 km/h. Hill station speed is ~30 km/h.
+       - If two places are 200km apart, their timestamps MUST be at least 4-6 hours apart. Do NOT schedule a 250km drive in 1.5 hours.
+    2. TRANSIT & PITSTOPS: If there is a long drive/train between cities (>3 hours), you MUST schedule realistic pitstops (e.g., "Breakfast on the way at X") and include them as items in the \`places\` array with accurate chronological timestamps (e.g., 3 hours after departure time).
     3. INITIAL TRANSIT (${formData.origin} to nearest hub for ${destination}): YOU MUST use the preferred mode "${transportMode}" if possible.
        - STILL GENERATE the plan using this mode regardless of budget tier.
     4. BUDGET WARNINGS: If the budget tier seems too low for the trip, put a funny warning inside \`budgetAnalysis.breakdown.FinancialWarning\`. You are FORBIDDEN from putting budget warnings in \`weatherAndFestivalAdvice\`.
-    5. LOCAL TRANSIT: Do NOT show flight times between local daily places. Show ONLY ground travel (distance + driving/walking time).
+    5. LOCAL TRANSIT (CRITICAL RULE): Do NOT show flight times between local daily places. Show ONLY ground travel (distance + driving/walking time).
+       - Day 1 \`places\` array MUST start at ${destination} or the nearest arrival hub in that region! Do NOT include ${formData.origin} or the departure airport in the \`places\` array, otherwise, the map will try to draw a 40-hour driving route! The \`initialLogistics\` block handles the long-haul transit.
     6. OPTIONAL DETOURS: If a specific viewpoint or activity requires a long detour that might be skipped due to time/traffic, set \`isOptional: true\` for that place. Otherwise, set it to \`false\`.
     7. localPulse: Identify real festivals/events in ${destination} on these dates. MUST be an array of simple strings.
-    8. UNIQUE PLACES (CRITICAL): Every single place across ALL days MUST be unique. NEVER repeat the same place.
+    8. UNIQUE AND EXPLICIT NAMES FOR MAPS (CRITICAL): Every single \`place.name\` MUST be unique and explicit. If a place is generic (e.g., "Coffee Estate", "Viewpoint"), you MUST append the city and state name to it (e.g., "Coffee Estate, Chikmagalur, Karnataka").
+       - Google Maps uses these exact names. If you just write "Coffee Estate", Google Maps will draw a 15-hour route to a random estate in another state! Always append the specific city name to ensure local routing.
 
     JSON FORMAT (MANDATORY):
     {
