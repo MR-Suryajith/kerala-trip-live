@@ -42,7 +42,6 @@ const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:3001",
   "https://sanchaara-ai.onrender.com",
-  "https://kerala-trip-live.netlify.app",
   "https://sanchaara-ai.netlify.app"
 ];
 app.use(cors({
