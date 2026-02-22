@@ -11,7 +11,7 @@
  *                   mobile-first responsive layout.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import MapComponent from './MapComponent';
 import jsPDF from 'jspdf';
 import CrowdAnalyzer from './CrowdAnalyzer';
@@ -38,6 +38,7 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
   const [checkedItems, setCheckedItems] = useState({});
   const [bookingDate, setBookingDate] = useState(null);  // Fix #10
   const [copyFeedback, setCopyFeedback] = useState(false); // Fix #9: track which day's date to pass
+  const [scrollPosition, setScrollPosition] = useState(0);
 
   const PACKING_API = window.location.hostname === 'localhost'
     ? 'http://localhost:5000/api/packing-list'
@@ -86,6 +87,27 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
     const key = `${catIdx}-${itemIdx}`;
     setCheckedItems(prev => ({ ...prev, [key]: !prev[key] }));
   };
+
+  useEffect(() => {
+    const handleScroll = () => {
+      // Improved scroll detection for mobile browsers
+      const position = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+      setScrollPosition(position);
+    };
+
+    // Add listener to both window and document body for better mobile support
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    // Also listen to touch movement as a fallback on iOS
+    window.addEventListener('touchmove', handleScroll, { passive: true });
+
+    // Initial check
+    handleScroll();
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('touchmove', handleScroll);
+    };
+  }, []);
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -346,9 +368,9 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
     <div className="min-h-screen w-full p-2 sm:p-4 md:p-8 animate-fade-in relative z-10 text-white font-sans selection:bg-emerald-500/30">
 
       {/* NAVIGATION (Mobile-first) */}
-      <nav className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center mb-6 sm:mb-10 gap-4 sm:gap-6 bg-white/5 backdrop-blur-2xl p-3 sm:p-4 md:p-6 rounded-2xl sm:rounded-[2rem] md:rounded-[2.5rem] border border-white/10 shadow-2xl relative z-50">
+      <nav className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center mb-6 sm:mb-10 gap-4 sm:gap-6 bg-slate-950/80  p-3 sm:p-4 md:p-6 rounded-2xl sm:rounded-[2rem] md:rounded-[2.5rem] border border-white/10 shadow-2xl relative z-50">
         <div className="text-center sm:text-left">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tighter italic">SANCHAARA <span className="text-blue-400 font-normal">AI</span></h2>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tighter ">SANCHAARA <span className="text-blue-400 font-normal">AI</span></h2>
           <p className="text-[8px] sm:text-[9px] font-bold uppercase tracking-[0.3em] sm:tracking-[0.4em] text-white/40">Intelligent Journey Partner</p>
         </div>
 
@@ -362,20 +384,20 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
               <>
                 <div className="fixed inset-0 z-[60]" onClick={() => setShowShareMenu(false)}></div>
                 <div className="absolute right-0 top-full mt-2 z-[70] bg-[#0c1425] border border-white/10 rounded-xl sm:rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.8)] p-1.5 min-w-[190px]">
-                  <button onClick={shareToWhatsApp} className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl hover:bg-white/5 transition-all text-left group">
+                  <button onClick={shareToWhatsApp} className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl hover:bg-slate-950/80 transition-all text-left group">
                     <div className="w-8 h-8 rounded-lg bg-[#25D366]/15 flex items-center justify-center shrink-0"><Send className="w-3.5 h-3.5 text-[#25D366]" /></div>
                     <span className="text-[10px] font-black text-white/60 uppercase tracking-wider group-hover:text-white transition-colors">WhatsApp</span>
                   </button>
-                  <button onClick={shareToTelegram} className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl hover:bg-white/5 transition-all text-left group">
+                  <button onClick={shareToTelegram} className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl hover:bg-slate-950/80 transition-all text-left group">
                     <div className="w-8 h-8 rounded-lg bg-[#0088cc]/15 flex items-center justify-center shrink-0"><Send className="w-3.5 h-3.5 text-[#0088cc]" /></div>
                     <span className="text-[10px] font-black text-white/60 uppercase tracking-wider group-hover:text-white transition-colors">Telegram</span>
                   </button>
-                  <button onClick={shareToTwitter} className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl hover:bg-white/5 transition-all text-left group">
-                    <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center shrink-0"><Twitter className="w-3.5 h-3.5 text-white/70" /></div>
+                  <button onClick={shareToTwitter} className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl hover:bg-slate-950/80 transition-all text-left group">
+                    <div className="w-8 h-8 rounded-lg bg-slate-950/80 flex items-center justify-center shrink-0"><Twitter className="w-3.5 h-3.5 text-white/70" /></div>
                     <span className="text-[10px] font-black text-white/60 uppercase tracking-wider group-hover:text-white transition-colors">X / Twitter</span>
                   </button>
-                  <div className="h-px bg-white/5 my-1 mx-2"></div>
-                  <button onClick={copyToClipboard} className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl hover:bg-white/5 transition-all text-left group">
+                  <div className="h-px bg-slate-950/80 my-1 mx-2"></div>
+                  <button onClick={copyToClipboard} className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl hover:bg-slate-950/80 transition-all text-left group">
                     <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0"><Copy className="w-3.5 h-3.5 text-blue-400" /></div>
                     <span className="text-[10px] font-black text-white/60 uppercase tracking-wider group-hover:text-white transition-colors">Copy Plan</span>
                   </button>
@@ -406,25 +428,25 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
       {/* SEASONAL INSIGHT + LOCAL PULSE */}
       <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 mb-8 sm:mb-16">
         {itinerary.seasonalNote && (
-          <div className="bg-gradient-to-r from-amber-500/20 to-orange-600/20 backdrop-blur-xl border border-amber-500/30 p-4 sm:p-6 md:p-8 rounded-2xl sm:rounded-[2rem] md:rounded-[2.5rem] shadow-2xl flex flex-col sm:flex-row items-center gap-4 sm:gap-6 md:gap-8 group">
+          <div className="bg-gradient-to-r from-amber-500/20 to-orange-600/20  border border-amber-500/30 p-4 sm:p-6 md:p-8 rounded-2xl sm:rounded-[2rem] md:rounded-[2.5rem] shadow-2xl flex flex-col sm:flex-row items-center gap-4 sm:gap-6 md:gap-8 group">
             <div className="bg-amber-400 text-black w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-2xl sm:rounded-3xl flex items-center justify-center shadow-xl">
               <Lightbulb className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10" />
             </div>
             <div className="text-center sm:text-left">
               <span className="bg-amber-400/20 text-amber-400 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.3em] px-3 py-1 rounded-full border border-amber-400/20">Seasonal Intelligence</span>
-              <p className="text-amber-50/80 text-sm sm:text-base md:text-lg font-medium italic mt-2 sm:mt-3 leading-relaxed">"{itinerary.seasonalNote}"</p>
+              <p className="text-amber-50/80 text-sm sm:text-base md:text-lg font-medium  mt-2 sm:mt-3 leading-relaxed">"{itinerary.seasonalNote}"</p>
             </div>
           </div>
         )}
 
         {itinerary.localPulse && itinerary.localPulse.length > 0 && (
-          <div className="bg-gradient-to-r from-blue-600/10 to-purple-600/10 backdrop-blur-xl border border-blue-500/20 p-4 sm:p-6 md:p-8 rounded-2xl sm:rounded-[2rem] md:rounded-[2.5rem] shadow-xl">
+          <div className="bg-gradient-to-r from-blue-600/10 to-purple-600/10  border border-blue-500/20 p-4 sm:p-6 md:p-8 rounded-2xl sm:rounded-[2rem] md:rounded-[2.5rem] shadow-xl">
             <h6 className="text-blue-400 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.3em] mb-4 sm:mb-6 flex items-center gap-2">
               <TrendingUp className="w-4 h-4" /> Local Pulse
             </h6>
             <div className="flex flex-wrap gap-3 sm:gap-4 md:gap-5">
               {itinerary.localPulse.map((event, i) => (
-                <div key={i} className="flex items-center gap-2.5 sm:gap-3 bg-white/5 border border-white/10 px-4 py-2 sm:px-5 sm:py-3 rounded-xl sm:rounded-2xl hover:bg-white/10 hover:border-white/20 transition-all cursor-default">
+                <div key={i} className="flex items-center gap-2.5 sm:gap-3 bg-slate-950/80 border border-white/10 px-4 py-2 sm:px-5 sm:py-3 rounded-xl sm:rounded-2xl hover:bg-slate-950/90 hover:border-white/20 transition-all cursor-default">
                   <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-blue-400"></div>
                   <span className="text-blue-50/90 font-bold text-[10px] sm:text-xs md:text-sm uppercase tracking-wide">
                     {safeRender(event)}
@@ -439,7 +461,7 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
       <main className="max-w-7xl mx-auto space-y-12 sm:space-y-16 md:space-y-20">
 
         {/* DEPARTURE SECTION */}
-        <section className="bg-white/5 backdrop-blur-xl rounded-2xl sm:rounded-[2rem] md:rounded-[3rem] border border-white/10 shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-3">
+        <section className="bg-slate-950/80  rounded-2xl sm:rounded-[2rem] md:rounded-[3rem] border border-white/10 shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-3">
           <div className="p-5 sm:p-8 md:p-10 lg:col-span-1 flex flex-col justify-center border-b lg:border-b-0 lg:border-r border-white/5">
             <span className="text-blue-400 font-black text-[9px] sm:text-[10px] tracking-widest uppercase mb-3 sm:mb-4 flex items-center gap-2"><Navigation className="w-3 h-3" /> Initial Transit</span>
             <h3 className="text-2xl sm:text-3xl md:text-4xl font-black mb-5 sm:mb-8 leading-tight tracking-tighter text-center lg:text-left">
@@ -447,11 +469,11 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
               <span className="text-white/20 text-xl sm:text-2xl font-light">—</span> {itinerary.initialLogistics.to}
             </h3>
             <div className="grid grid-cols-2 gap-3 sm:gap-4">
-              <div className="bg-white/5 p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-white/5 text-center">
+              <div className="bg-slate-950/80 p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-white/5 text-center">
                 <p className="text-white/30 text-[8px] sm:text-[9px] font-bold uppercase mb-1">Mode</p>
                 <p className="font-black text-[10px] sm:text-xs uppercase text-blue-400">{itinerary.initialLogistics.mode}</p>
               </div>
-              <div className="bg-white/5 p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-white/5 text-center">
+              <div className="bg-slate-950/80 p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-white/5 text-center">
                 <p className="text-white/30 text-[8px] sm:text-[9px] font-bold uppercase mb-1">Dist.</p>
                 <p className="font-black text-[10px] sm:text-xs text-green-400 uppercase">{itinerary.initialLogistics.distance}</p>
               </div>
@@ -482,7 +504,7 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
                   loading="lazy"
                 />
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <div className="bg-slate-950/80 backdrop-blur-md border border-white/10 rounded-xl sm:rounded-2xl px-4 sm:px-8 py-3 sm:py-5 flex items-center gap-3 sm:gap-6 shadow-2xl">
+                  <div className="bg-slate-950/80  border border-white/10 rounded-xl sm:rounded-2xl px-4 sm:px-8 py-3 sm:py-5 flex items-center gap-3 sm:gap-6 shadow-2xl">
                     <div className="text-center">
                       <p className="text-[6px] sm:text-[7px] font-bold text-white/30 uppercase tracking-[0.2em] mb-1">From</p>
                       <p className="text-[10px] sm:text-xs font-black text-white">{itinerary.initialLogistics.from}</p>
@@ -527,7 +549,7 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
         {/* DAILY CARDS (Mobile-first Layout) */}
         <div className="space-y-10 sm:space-y-16 md:space-y-24">
           {itinerary.days.map((day, dayIdx) => (
-            <div key={dayIdx} className="bg-white/5 backdrop-blur-3xl rounded-2xl sm:rounded-[2rem] md:rounded-[3.5rem] border border-white/10 shadow-2xl overflow-hidden">
+            <div key={dayIdx} className="bg-slate-950/80  rounded-2xl sm:rounded-[2rem] md:rounded-[3.5rem] border border-white/10 shadow-2xl overflow-hidden">
 
               {/* Day Header */}
               <div className="bg-gradient-to-r from-blue-600/20 to-emerald-500/10 p-4 sm:p-6 md:p-8 border-b border-white/5 flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-6">
@@ -595,14 +617,14 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
                                </div>
                              </div>
                              <div className="flex flex-row md:flex-col gap-2 sm:gap-3 items-start w-full">
-                               <div className="bg-white/5 border border-white/10 rounded-lg sm:rounded-xl px-3 py-1.5 sm:px-4 sm:py-2 flex-1 md:w-full overflow-hidden">
+                               <div className="bg-slate-950/80 border border-white/10 rounded-lg sm:rounded-xl px-3 py-1.5 sm:px-4 sm:py-2 flex-1 md:w-full overflow-hidden">
                                   <p className="text-[7px] sm:text-[8px] font-bold text-white/30 uppercase tracking-widest mb-1 sm:mb-1.5">Traffic</p>
                                   <div className={`inline-flex items-center gap-1.5 sm:gap-2 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-md text-[8px] sm:text-[9px] font-black ${traffic.bg} ${traffic.color} border border-white/5`}>
                                     <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-current shrink-0"></span>
                                     <span className="truncate">{traffic.label}</span>
                                   </div>
                                </div>
-                               <div className="bg-white/5 border border-white/10 rounded-lg sm:rounded-xl px-3 py-1.5 sm:px-4 sm:py-2 flex-1 md:w-full overflow-hidden">
+                               <div className="bg-slate-950/80 border border-white/10 rounded-lg sm:rounded-xl px-3 py-1.5 sm:px-4 sm:py-2 flex-1 md:w-full overflow-hidden">
                                   <p className="text-[7px] sm:text-[8px] font-bold text-white/30 uppercase tracking-widest mb-1 sm:mb-1.5">Route</p>
                                   <p className="text-[9px] sm:text-[10px] font-black text-green-400 whitespace-nowrap overflow-hidden text-ellipsis py-0.5 sm:py-1">
                                     {pIdx === 0 && dayIdx === 0 ? itinerary.arrivalLogistics.distance : (place.distanceFromPrevious || 'Local')}
@@ -624,7 +646,7 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
                             {/* CROWD ANALYZER */}
                             <CrowdAnalyzer analysis={place.crowdAnalysis} />
 
-                            <p className="text-white/60 my-4 sm:my-6 md:my-8 leading-relaxed italic text-sm sm:text-base md:text-lg border-l-2 border-blue-500/30 pl-4 sm:pl-6 py-1">{place.description}</p>
+                            <p className="text-white/60 my-4 sm:my-6 md:my-8 leading-relaxed  text-sm sm:text-base md:text-lg border-l-2 border-blue-500/30 pl-4 sm:pl-6 py-1">{place.description}</p>
 
                             <div className="rounded-xl sm:rounded-[2rem] md:rounded-[2.5rem] overflow-hidden border border-white/10 h-48 sm:h-64 md:h-80 transition-all shadow-2xl">
                               <MapComponent origin={mapOrigin} destination={place.name} />
@@ -644,10 +666,10 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
                              !place.alternativePlace.toLowerCase().includes('n/a') &&
                              // Hide swap UI for generic stays and dining
                              !['hotel', 'resort', 'stay', 'lodge', 'camp', 'breakfast', 'lunch', 'dinner', 'restaurant', 'cafe', 'eatery', 'dhaba', 'check', 'retreat', 'homestay', 'airport', 'station', 'bus', 'transit'].some(term => (place.name || '').toLowerCase().includes(term)) && (
-                              <div className="mt-6 sm:mt-8 bg-white/5 border border-white/10 p-4 sm:p-6 md:p-8 rounded-2xl sm:rounded-[2rem] md:rounded-[2.5rem] shadow-xl group/alt hover:bg-slate-900/50 transition-all">
+                              <div className="mt-6 sm:mt-8 bg-slate-950/80 border border-white/10 p-4 sm:p-6 md:p-8 rounded-2xl sm:rounded-[2rem] md:rounded-[2.5rem] shadow-xl group/alt hover:bg-slate-900/50 transition-all">
                                 <p className="text-yellow-500 text-[8px] sm:text-[9px] md:text-[10px] font-black uppercase tracking-widest mb-3 sm:mb-4 flex items-center gap-2"><RefreshCw className="w-3 h-3" /> Smart Swap Suggestion</p>
                                 <div className="flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-6">
-                                  <p className="text-base sm:text-lg md:text-xl font-bold text-white/90 italic">"{place.alternativePlace}"</p>
+                                  <p className="text-base sm:text-lg md:text-xl font-bold text-white/90 ">"{place.alternativePlace}"</p>
                                   <button onClick={() => onSwitchPlan(day.dayNumber, place.name, place.alternativePlace)} className="group/btn relative overflow-hidden w-full sm:w-auto bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-blue-600/10 hover:from-blue-600/25 hover:via-purple-600/25 hover:to-blue-600/25 text-white/80 hover:text-white border border-white/10 hover:border-blue-400/30 px-6 sm:px-10 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-black text-[9px] sm:text-[10px] uppercase tracking-widest whitespace-nowrap shrink-0 transition-all duration-500 active:scale-[0.97] shadow-lg hover:shadow-blue-500/20"><div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent translate-x-[-100%] group-hover/btn:translate-x-[100%] transition-transform duration-700"></div><span className="relative">Swap Plan</span></button>
                                 </div>
                               </div>
@@ -661,7 +683,7 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
 
                 {/* Sidebar: Nearby Highlights (only if data exists) */}
                 {day.nearbyHighlights && highlightCategories.some(cat => day.nearbyHighlights?.[cat.key]) && (
-                <aside className="w-full xl:w-96 bg-white/5 p-5 sm:p-8 md:p-12">
+                <aside className="w-full xl:w-96 bg-slate-950/80 p-5 sm:p-8 md:p-12">
                    <h6 className="text-[10px] sm:text-xs font-black text-white/40 uppercase tracking-[0.3em] sm:tracking-[0.4em] mb-6 sm:mb-8 md:mb-12 flex items-center gap-2 sm:gap-3"><MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" /> Nearby Highlights</h6>
                    <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-1 gap-3 sm:gap-4 md:gap-6">
                      {highlightCategories.map((cat) => {
@@ -673,10 +695,10 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
                            href={`https://www.google.com/maps/search/${encodeURIComponent(value + ', ' + day.cityLocation)}`}
                            target="_blank"
                            rel="noreferrer"
-                           className={`group/hl block bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-5 transition-all hover:border-white/20 ${cat.hoverBg} active:scale-95`}
+                           className={`group/hl block bg-slate-950/80 border border-white/10 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-5 transition-all hover:border-white/20 ${cat.hoverBg} active:scale-95`}
                          >
                            <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
-                              <div className={`p-2 sm:p-3 rounded-lg sm:rounded-xl bg-white/5 border border-white/10 ${cat.color} group-hover/hl:scale-110 transition-transform shrink-0`}>
+                              <div className={`p-2 sm:p-3 rounded-lg sm:rounded-xl bg-slate-950/80 border border-white/10 ${cat.color} group-hover/hl:scale-110 transition-transform shrink-0`}>
                                   {cat.icon}
                               </div>
                               <span className="text-[8px] sm:text-[9px] md:text-[10px] font-black text-white/30 uppercase tracking-[0.15em] sm:tracking-[0.3em]">{cat.label}</span>
@@ -696,13 +718,13 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
 
         {/* FINANCIAL BREAKDOWN */}
         <section>
-          <div className="bg-white/5 backdrop-blur-3xl rounded-2xl sm:rounded-[2.5rem] md:rounded-[3.5rem] border border-white/10 p-5 sm:p-8 md:p-12 shadow-2xl">
-            <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-10 border-b border-white/5 pb-4 sm:pb-6"><Wallet className="text-emerald-400 w-6 h-6 sm:w-8 sm:h-8" /><h3 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight italic">Financial Logic</h3></div>
+          <div className="bg-slate-950/80  rounded-2xl sm:rounded-[2.5rem] md:rounded-[3.5rem] border border-white/10 p-5 sm:p-8 md:p-12 shadow-2xl">
+            <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-10 border-b border-white/5 pb-4 sm:pb-6"><Wallet className="text-emerald-400 w-6 h-6 sm:w-8 sm:h-8" /><h3 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight ">Financial Logic</h3></div>
             <div className="space-y-3 sm:space-y-4">
               {itinerary.budgetAnalysis?.breakdown && Object.entries(itinerary.budgetAnalysis.breakdown)
                 .filter(([key]) => !key.toLowerCase().includes('financial') && !key.toLowerCase().includes('warning'))
                 .map(([key, val]) => (
-                <div key={key} className="flex justify-between items-center bg-white/5 p-3 sm:p-4 md:p-5 rounded-xl sm:rounded-2xl border border-white/5 hover:bg-white/10 transition-all">
+                <div key={key} className="flex justify-between items-center bg-slate-950/80 p-3 sm:p-4 md:p-5 rounded-xl sm:rounded-2xl border border-white/5 hover:bg-slate-950/90 transition-all">
                    <span className="capitalize font-black text-white/40 text-[9px] sm:text-[10px] tracking-widest">{key}</span>
                    <span className="font-bold text-sm sm:text-base md:text-lg">{safeRender(val)}</span>
                 </div>
@@ -711,14 +733,14 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
 
             {/* Financial Warning — Isolated Card */}
             {itinerary.budgetAnalysis?.breakdown?.FinancialWarning && (
-                <div className="mt-5 sm:mt-8 bg-gradient-to-r from-amber-500/10 to-orange-500/10 backdrop-blur-xl border border-amber-500/20 rounded-xl sm:rounded-[1.5rem] p-4 sm:p-6 md:p-8 shadow-xl">
+                <div className="mt-5 sm:mt-8 bg-gradient-to-r from-amber-500/10 to-orange-500/10  border border-amber-500/20 rounded-xl sm:rounded-[1.5rem] p-4 sm:p-6 md:p-8 shadow-xl">
                   <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
                     <div className="bg-amber-400/20 p-2 sm:p-2.5 rounded-lg sm:rounded-xl">
                       <Info className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
                     </div>
                     <span className="text-amber-400 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.3em]">Financial Advisor Note</span>
                   </div>
-                  <p className="text-amber-50/80 text-xs sm:text-sm md:text-base leading-relaxed italic">{safeRender(itinerary.budgetAnalysis.breakdown.FinancialWarning)}</p>
+                  <p className="text-amber-50/80 text-xs sm:text-sm md:text-base leading-relaxed ">{safeRender(itinerary.budgetAnalysis.breakdown.FinancialWarning)}</p>
                 </div>
             )}
           </div>
@@ -727,9 +749,9 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
         {/* FINAL BUDGET FOOTER */}
         <footer className="text-center py-8 sm:py-10 md:py-16 relative">
           <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-emerald-500/10 to-blue-600/10 blur-[80px] sm:blur-[100px] rounded-full"></div>
-          <div className="relative inline-block bg-slate-950/60 backdrop-blur-3xl border border-white/10 px-6 sm:px-10 md:px-16 py-5 sm:py-6 md:py-8 rounded-2xl sm:rounded-[2rem] md:rounded-[3rem] shadow-2xl">
+          <div className="relative inline-block bg-slate-950/60  border border-white/10 px-6 sm:px-10 md:px-16 py-5 sm:py-6 md:py-8 rounded-2xl sm:rounded-[2rem] md:rounded-[3rem] shadow-2xl">
             <p className="text-white/30 text-[9px] sm:text-[10px] md:text-[11px] font-medium uppercase tracking-[0.4em] sm:tracking-[0.7em] mb-3 sm:mb-4">Total Trip Valuation</p>
-            <p className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-white via-white/80 to-white/20 drop-shadow-2xl italic uppercase">{safeRender(itinerary.estimatedTotalCost)}</p>
+            <p className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-white via-white/80 to-white/20 drop-shadow-2xl  uppercase">{safeRender(itinerary.estimatedTotalCost)}</p>
             <div className="mt-4 sm:mt-5 flex items-center justify-center gap-2 sm:gap-3 text-[8px] sm:text-[9px] md:text-[10px] font-bold text-emerald-400/60 tracking-[0.2em] sm:tracking-[0.3em] uppercase"><CheckCircle2 className="w-3 h-3 animate-pulse" /> Sanchaara Precision Intel</div>
           </div>
         </footer>
@@ -738,7 +760,7 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
       {/* ═══════ SMART PACKING LIST OVERLAY ═══════ */}
       {showPackingList && (
         <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center">
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setShowPackingList(false)}></div>
+          <div className="absolute inset-0 bg-black/70 " onClick={() => setShowPackingList(false)}></div>
           <div className="relative w-full sm:w-[480px] max-h-[85vh] sm:max-h-[80vh] flex flex-col rounded-t-3xl sm:rounded-3xl overflow-hidden border border-white/10 shadow-[0_-10px_60px_rgba(0,0,0,0.6)]"
             style={{ background: 'linear-gradient(180deg, rgba(12,20,37,0.98) 0%, rgba(8,14,28,0.99) 100%)' }}
           >
@@ -758,7 +780,7 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
                     </p>
                   </div>
                 </div>
-                <button onClick={() => setShowPackingList(false)} className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 flex items-center justify-center transition-all active:scale-90">
+                <button onClick={() => setShowPackingList(false)} className="w-8 h-8 rounded-lg bg-slate-950/80 hover:bg-slate-950/90 border border-white/5 flex items-center justify-center transition-all active:scale-90">
                   <X className="w-3.5 h-3.5 text-white/40" />
                 </button>
               </div>
@@ -776,7 +798,7 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
               {packingData?.categories?.map((cat, catIdx) => (
                 <div key={catIdx} className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-4 space-y-2">
                   <div className="flex items-center gap-2.5 mb-3">
-                    <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-emerald-400">
+                    <div className="w-8 h-8 rounded-lg bg-slate-950/80 border border-white/10 flex items-center justify-center text-emerald-400">
                       {packingIcons[cat.icon] || <Backpack className="w-4 h-4" />}
                     </div>
                     <span className="text-[10px] font-black text-white/50 uppercase tracking-[0.2em]">{cat.name}</span>
@@ -820,7 +842,7 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
                     {Math.round((Object.values(checkedItems).filter(Boolean).length / packingData.categories?.reduce((a, c) => a + c.items.length, 0)) * 100) || 0}%
                   </span>
                 </div>
-                <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                <div className="h-1.5 bg-slate-950/80 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-gradient-to-r from-emerald-500 to-cyan-400 rounded-full transition-all duration-500"
                     style={{ width: `${(Object.values(checkedItems).filter(Boolean).length / (packingData.categories?.reduce((a, c) => a + c.items.length, 0) || 1)) * 100}%` }}
@@ -832,21 +854,18 @@ export default function ItineraryDisplay({ itinerary, onEdit, onSwitchPlan }) {
         </div>
       )}
 
-      {/* FLOATING SCROLL CONTROLS */}
-      <div className="fixed bottom-6 right-6 z-[90] flex flex-col gap-2">
+      {/* FLOATING SCROLL CONTROLS - Dynamic Up/Down */}
+      <div className="fixed bottom-28 right-6 z-[90] flex flex-col gap-2 sm:gap-3">
         <button
-          onClick={scrollToTop}
-          className="w-10 h-10 sm:w-12 sm:h-12 bg-slate-900/80 hover:bg-slate-800 backdrop-blur-md rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.5)] border border-white/10 flex items-center justify-center text-white/70 hover:text-white hover:border-white/20 transition-all duration-300 active:scale-95 group"
-          title="Scroll to Top"
+          onClick={scrollPosition > 300 ? scrollToTop : scrollToBottom}
+          className="w-10 h-10 sm:w-12 sm:h-12 bg-slate-900/60 hover:bg-slate-800 backdrop-blur-md rounded-full shadow-lg border border-white/10 flex items-center justify-center text-white/70 hover:text-white transition-all active:scale-95 group"
+          title={scrollPosition > 300 ? "Scroll to Top" : "Scroll to Bottom"}
         >
-          <ArrowUp className="w-5 h-5 group-hover:-translate-y-1 transition-transform" />
-        </button>
-        <button
-          onClick={scrollToBottom}
-          className="w-10 h-10 sm:w-12 sm:h-12 bg-slate-900/80 hover:bg-slate-800 backdrop-blur-md rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.5)] border border-white/10 flex items-center justify-center text-white/70 hover:text-white hover:border-white/20 transition-all duration-300 active:scale-95 group"
-          title="Scroll to Bottom"
-        >
-          <ArrowDown className="w-5 h-5 group-hover:translate-y-1 transition-transform" />
+          {scrollPosition > 300 ? (
+            <ArrowUp className="w-4 h-4 sm:w-5 sm:h-5 group-hover:-translate-y-1 transition-transform" />
+          ) : (
+            <ArrowDown className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-y-1 transition-transform" />
+          )}
         </button>
       </div>
 
