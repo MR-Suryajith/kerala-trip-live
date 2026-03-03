@@ -80,7 +80,9 @@ const apiKeys = [
 ].filter(Boolean);
 
 if (apiKeys.length === 0) {
-  console.warn("⚠️ WARNING: No Gemini API keys found in the environment variables!");
+  console.error("❌ FATAL: No Gemini API keys found in the environment variables! Server cannot generate content.");
+  console.error("   Please set GEMINI_API_KEY, GEMINI_API_KEY_1, GEMINI_API_KEY_2, or GEMINI_API_KEY_3 in your .env file.");
+  process.exit(1);
 }
 
 /** @type {number} Index of the currently active API key in the rotation pool. */
@@ -144,15 +146,15 @@ const generateWithRetry = async (modelName, config, prompt, retries = 3, delay =
           currentKeyIndex = (currentKeyIndex + 1) % apiKeys.length;
           console.log(`⚠️ Quota on Key ${prevIndex + 1}/${apiKeys.length}. Rotating to Key ${currentKeyIndex + 1}...`);
           // Small delay to let the new key's connection initialize
-          await new Promise((res) => setTimeout(res, 500));
+          await new Promise((resolve) => setTimeout(resolve, 500));
         } else {
           console.log(`⚠️ Quota reached (single key). Retrying in ${delay}ms... (${attempt}/${maxAttempts})`);
-          await new Promise((res) => setTimeout(res, delay));
+          await new Promise((resolve) => setTimeout(resolve, delay));
           delay *= 2;
         }
       } else if (isOverloaded && attempt < maxAttempts) {
         console.log(`⚠️ Server overloaded. Retrying in ${delay}ms... (${attempt}/${maxAttempts})`);
-        await new Promise((res) => setTimeout(res, delay));
+        await new Promise((resolve) => setTimeout(resolve, delay));
         delay *= 2;
       } else {
         throw error;
@@ -455,7 +457,7 @@ app.post("/api/chat", async (req, res) => {
           currentKeyIndex = (currentKeyIndex + 1) % apiKeys.length;
           console.log(`⚠️ Chat: Quota on Key ${prevIndex + 1}. Rotating to Key ${currentKeyIndex + 1}...`);
           // Fix #3: Small delay to let the new key's connection initialize
-          await new Promise((res) => setTimeout(res, 500));
+          await new Promise((resolve) => setTimeout(resolve, 500));
         } else {
           throw err;
         }
@@ -536,6 +538,12 @@ app.post("/api/search-trains", async (req, res) => {
     const fromCode = booking.resolveStationCode(origin);
     const toCode = booking.resolveStationCode(destination);
 
+    // Fix: Don't make API call with unknown station codes
+    if (!fromCode || !toCode) {
+      console.log(`⚠️ Train Search skipped: Unknown station code for "${!fromCode ? origin : destination}"`);
+      return res.json({ trains: [], error: `Station not found for ${!fromCode ? origin : destination}. Try a major city.` });
+    }
+
     console.log(`🚆 Train Search: ${fromCode} → ${toCode} on ${date}`);
     const trains = await booking.searchTrains(fromCode, toCode, date);
     res.json({ trains });
@@ -561,11 +569,8 @@ app.get("/api/weather", async (req, res) => {
     // Fetch 5-day / 3-hour forecast data
     const url = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&appid=${API_KEY}`;
 
-    // Fallback to cross-fetch or global fetch
-    const fetchMod = await import('node-fetch');
-    const fetchFunc = fetchMod.default || fetchMod;
-
-    const response = await fetchFunc(url);
+    // Use native fetch (Node 18+) instead of node-fetch dependency
+    const response = await fetch(url);
     if (!response.ok) throw new Error(`Weather API returned status: ${response.status}`);
 
     const data = await response.json();

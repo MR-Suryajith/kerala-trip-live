@@ -28,9 +28,11 @@ export default function BookingHub({ logistics, destination, startDate, traveler
     else setActiveTab("hotels");
   }, [isFlight, isTrain]);
 
-  // Fetch data on tab change
+  // Fetch data on tab change — with race condition guard
   useEffect(() => {
     if (!activeTab || !destination) return;
+    let aborted = false; // Prevents stale updates when user switches tabs quickly
+
     const fetchData = async () => {
       setLoading(true);
       try {
@@ -40,16 +42,22 @@ export default function BookingHub({ logistics, destination, startDate, traveler
         const travelHub = logistics?.to || destination;
 
         if (activeTab === "flights" && flights.length === 0) {
-          setFlights(await searchFlights(logistics?.from, travelHub, startDate, travelers));
+          const result = await searchFlights(logistics?.from, travelHub, startDate, travelers);
+          if (!aborted) setFlights(result);
         } else if (activeTab === "hotels" && hotels.length === 0) {
-          setHotels(await searchHotels(destination));
+          const result = await searchHotels(destination);
+          if (!aborted) setHotels(result);
         } else if (activeTab === "trains" && trains.length === 0) {
-          setTrains(await searchTrains(logistics?.from, travelHub, startDate));
+          const result = await searchTrains(logistics?.from, travelHub, startDate);
+          if (!aborted) setTrains(result);
         }
       } catch (err) { /* Silently fail — empty state handles it */ }
-      finally { setLoading(false); }
+      finally { if (!aborted) setLoading(false); }
     };
     fetchData();
+
+    return () => { aborted = true; }; // Cleanup: mark previous fetch as stale
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
   const tabs = [
